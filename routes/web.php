@@ -25,18 +25,13 @@ Route::prefix('dashboard')->group(function () {
     Route::get('positions/list', [PositionController::class, 'list'])->name('positions.list');
     Route::resource('positions', PositionController::class);
 
-    
-    
     // Attendance routes
     Route::get('attendance/checkin', [AttendanceController::class, 'checkin'])->name('attendance.checkin');
     Route::post('attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::delete('attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
-
-    // Add Check-Out routes
-    Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout'); // For rendering the check-out page
-    Route::post('attendance/checkout/store', [AttendanceController::class, 'checkoutStore'])->name('attendance.checkout.store'); // For submitting check-out data
-    Route::get('attendance/{id}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit'); // For editing attendance
-    Route::put('attendance/{id}', [AttendanceController::class, 'update'])->name('attendance.update'); // For updating attendance
+    Route::get('attendance/check/{employeeId}', [AttendanceController::class, 'check'])->name('attendance.check');
+    Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
+    Route::post('attendance/checkout/store', [AttendanceController::class, 'checkoutStore'])->name('attendance.checkout.store');
 });
 
 Route::get('/debug-schema', function() {
@@ -87,3 +82,4 @@ Route::get('/test-qr', function() {
         ], 500);
     }
 });
+?>
