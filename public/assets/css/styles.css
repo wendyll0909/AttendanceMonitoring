@@ -25,7 +25,7 @@ body {
     padding: 20px;
     position: fixed;
     left: 0;
-    top: 0;
+    top: 30;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
     transform: translateX(-270px) !important;
@@ -35,6 +35,10 @@ body {
 
 .sidebar.visible {
     transform: translateX(0) !important;
+}
+.sidebar.visible ~ .hamburger-menu {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .sidebar h1 {
@@ -119,7 +123,7 @@ body {
 
 .hamburger-menu {
     position: fixed;
-    top: 20px;
+    top: 5px;
     left: 20px;
     z-index: 1000;
     font-size: 24px;
@@ -128,10 +132,9 @@ body {
     padding: 10px;
     background-color: #2a2d2e;
     border-radius: 5px;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, opacity 0.3s ease;
     display: block;
 }
-
 .hamburger-menu:hover {
     background-color: #3a4143;
 }

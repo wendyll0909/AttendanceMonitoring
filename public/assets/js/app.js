@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOMContentLoaded fired, app.js is running');
+    console.log('Bootstrap Modal available:', typeof bootstrap.Modal);
+    console.log('HTMX available:', typeof htmx);
+
     const sidebar = document.querySelector('.sidebar');
     const hamburgerMenu = document.querySelector('.hamburger-menu');
     const contentArea = document.getElementById('content-area');
@@ -135,10 +139,58 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typeof isNavigating !== 'undefined' && isNavigating) {
             isNavigating = false;
             console.log('Navigation completed, isNavigating reset, states:', { isNavigating, isSidebarToggled });
-            if (typeof isSidebarToggled !== 'undefined' && !isSidebarToggled && typeof isSidebarHovered !== 'undefined' && !isSidebarHovered && sidebar) {
+            if (!isSidebarToggled && !isSidebarHovered && sidebar) {
                 sidebar.classList.remove('visible');
                 console.log('Sidebar hidden after navigation, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
             }
+        }
+    });
+
+    // Consolidated event delegation for edit buttons
+    document.body.addEventListener('click', function (e) {
+        if (e.target.classList.contains('edit-position') || e.target.classList.contains('edit-employee')) {
+            e.preventDefault();
+            const isPosition = e.target.classList.contains('edit-position');
+            const type = isPosition ? 'position' : 'employee';
+            const id = e.target.getAttribute('data-id');
+            console.log(`Edit ${type} button clicked`, { id });
+
+            // Determine modal and target
+            const modalId = isPosition ? 'editPositionModal' : 'editEmployeeModal';
+            const formTarget = isPosition ? '#edit-position-form' : '#edit-employee-form';
+            const url = isPosition ? `/dashboard/positions/${id}` : `/dashboard/employees/${id}`;
+
+            // Verify modal exists
+            const modalElement = document.getElementById(modalId);
+            if (!modalElement) {
+                console.error(`Edit ${type} modal not found`);
+                return;
+            }
+
+            // Initialize Bootstrap modal
+            let modal;
+            try {
+                modal = new bootstrap.Modal(modalElement);
+            } catch (error) {
+                console.error(`Failed to initialize Bootstrap modal for ${type}:`, error);
+                return;
+            }
+
+            // Trigger HTMX request
+            htmx.ajax('GET', url, {
+                target: formTarget,
+                swap: 'innerHTML'
+            }).then(() => {
+                console.log(`HTMX request completed for ${type}, showing modal`);
+                modal.show();
+            }).catch(error => {
+                console.error(`HTMX request failed for ${type}:`, error);
+                const errorContainer = document.getElementById('error-message') || document.getElementById('fallback-error');
+                if (errorContainer) {
+                    errorContainer.innerHTML = `Failed to load ${type} data.`;
+                    errorContainer.style.display = 'block';
+                }
+            });
         }
     });
 
@@ -166,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        
     });
 
     const viewQrModal = document.getElementById('viewQrModal');
@@ -179,6 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
 function downloadQR(qrCode) {
     try {
         if (!qrCode) {

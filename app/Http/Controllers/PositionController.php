@@ -60,21 +60,22 @@ class PositionController extends Controller
         }
     }
     public function show($id)
-    {
-        try {
-            $position = Position::findOrFail($id);
-            return view('positions.edit-form', compact('position'));
-        } catch (\Exception $e) {
-            Log::error('Position show failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->view('positions.table', [
-                'positions' => Position::all(),
-                'error' => '<div class="error">Failed to load position: ' . $e->getMessage() . '</div>'
-            ], 500);
-        }
+{
+    try {
+        Log::info('Loading POSITION for edit', ['position_id' => $id]);
+        $position = Position::findOrFail($id);
+        return view('positions.edit-form', compact('position'));
+    } catch (\Exception $e) {
+        Log::error('Position show failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->view('positions.table', [
+            'positions' => Position::all(),
+            'error' => '<div class="error">Failed to load position: ' . $e->getMessage() . '</div>'
+        ], 500);
     }
+}
 
     public function update(Request $request, $id)
     {
