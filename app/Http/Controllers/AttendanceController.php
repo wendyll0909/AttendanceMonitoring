@@ -124,27 +124,26 @@ class AttendanceController extends Controller
         ]);
     }
     public function checkout(Request $request)
-    {
-        try {
-            $checkouts = Attendance::with('employee')
-                ->where('date', now()->toDateString())
-                ->whereNotNull('check_out_time')
-                ->get();
+{
+    try {
+        $checkins = Attendance::with('employee')
+            ->where('date', now()->toDateString())
+            ->get();
 
-            return view('attendance.checkout', compact('checkouts'));
-        } catch (\Exception $e) {
-            Log::error('Check-out page load failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->view('attendance.checkout', [
-                'checkouts' => collect([]),
-                'error' => 'Failed to load check-out page: ' . $e->getMessage()
-            ], 500);
-        }
+        return view('attendance.checkout', compact('checkins'));
+    } catch (\Exception $e) {
+        Log::error('Check-out page load failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->view('attendance.checkout', [
+            'checkins' => collect([]),
+            'error' => 'Failed to load check-out page: ' . $e->getMessage()
+        ], 500);
     }
+}
 
-    public function checkoutStore(Request $request)
+   public function checkoutStore(Request $request)
     {
         try {
             $employeeId = null;
@@ -159,7 +158,7 @@ class AttendanceController extends Controller
                 $checkOutMethod = $request->input('method') === 'qr_camera' ? 'qr_camera' : 'qr_upload';
             } elseif ($request->has('employee_id')) {
                 $employeeId = $request->input('employee_id');
-                $checkOutMethod = 'manual';
+                $checkOutMethod = 'manual'; // Used for Check-Out button
             } else {
                 return response()->json(['error' => 'No employee selected or QR code provided'], 422);
             }
@@ -190,15 +189,14 @@ class AttendanceController extends Controller
                 'check_out_method' => $checkOutMethod,
             ]);
 
-            $checkouts = Attendance::with('employee')
+            $checkins = Attendance::with('employee')
                 ->where('date', now()->toDateString())
-                ->whereNotNull('check_out_time')
                 ->get();
 
             session()->flash('success', 'Check-out recorded successfully');
 
             return response()->view('attendance.checkout', [
-                'checkouts' => $checkouts
+                'checkins' => $checkins
             ]);
         } catch (\Exception $e) {
             Log::error('Check-out failed', [
@@ -211,53 +209,63 @@ class AttendanceController extends Controller
         }
     }
 
-    public function destroy($id)
-    {
-        try {
-            DB::beginTransaction();
-            $attendance = Attendance::findOrFail($id);
-            $wasCheckout = $attendance->check_out_time !== null;
-            $employeeId = $attendance->employee_id;
-            $date = $attendance->date;
-            $attendance->delete();
+ public function destroy($id)
+{
+    try {
+        DB::beginTransaction();
+        $attendance = Attendance::findOrFail($id);
+        $employeeId = $attendance->employee_id;
+        $date = $attendance->date;
 
-            Log::info('Attendance record deleted', [
+        if ($attendance->check_out_time) {
+            // Clear check-out time and method
+            $attendance->update([
+                'check_out_time' => null,
+                'check_out_method' => null,
+            ]);
+            Log::info('Check-out cleared', [
                 'attendance_id' => $id,
                 'employee_id' => $employeeId,
                 'date' => $date
             ]);
-
             DB::commit();
 
-            if ($wasCheckout) {
-                $checkouts = Attendance::with('employee')
-                    ->where('date', now()->toDateString())
-                    ->whereNotNull('check_out_time')
-                    ->get();
-                return response()->view('attendance.checkout', [
-                    'checkouts' => $checkouts,
-                    'success' => 'Check-out deleted successfully'
-                ]);
-            } else {
-                $checkins = Attendance::with('employee')
-                    ->where('date', now()->toDateString())
-                    ->get();
-                return response()->view('attendance.checkin', [
-                    'checkins' => $checkins,
-                    'success' => 'Check-in deleted successfully'
-                ]);
-            }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Check-in/check-out deletion failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $checkins = Attendance::with('employee')
+                ->where('date', now()->toDateString())
+                ->get();
+            return response()->view('attendance.checkout', [
+                'checkins' => $checkins,
+                'success' => 'Check-out cleared successfully'
             ]);
-            return response()->json([
-                'error' => 'Failed to delete record: ' . $e->getMessage()
-            ], 500);
+        } else {
+            // Delete check-in record
+            $attendance->delete();
+            Log::info('Check-in record deleted', [
+                'attendance_id' => $id,
+                'employee_id' => $employeeId,
+                'date' => $date
+            ]);
+            DB::commit();
+
+            $checkins = Attendance::with('employee')
+                ->where('date', now()->toDateString())
+                ->get();
+            return response()->view('attendance.checkin', [
+                'checkins' => $checkins,
+                'success' => 'Check-in deleted successfully'
+            ]);
         }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Check-in/check-out deletion failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'error' => 'Failed to delete or clear record: ' . $e->getMessage()
+        ], 500);
     }
+}
     public function check($employeeId)
     {
         try {
