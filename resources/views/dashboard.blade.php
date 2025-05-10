@@ -64,15 +64,10 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/leave-requests') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-                        <i class="bi bi-calendar-x-fill"></i> Leave Requests
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/overtime-requests') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-                        <i class="bi bi-clock-fill"></i> Overtime Requests
-                    </a>
-                </li>
+   <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+    <i class="bi bi-list-check"></i> Requests
+</a>
+</li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" hx-get="{{ url('/dashboard/reports') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
                         <i class="bi bi-file-earmark-text-fill"></i> Attendance Reports
@@ -246,8 +241,9 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="{{ asset('assets/js/app.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="{{ asset('assets/js/app.js') }}"></script>
+<script src="{{ asset('assets/js/requests.js') }}"></script>
 </body>
 </html>

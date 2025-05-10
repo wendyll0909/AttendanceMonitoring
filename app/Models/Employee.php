@@ -16,4 +16,12 @@ class Employee extends Model
     {
         return $this->belongsTo(Position::class, 'position_id', 'position_id');
     }
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->fname} {$this->mname} {$this->lname}");
+    }
+    public function scopeActive($query)
+{
+    return $query->where('status', 'active');
+}
 }

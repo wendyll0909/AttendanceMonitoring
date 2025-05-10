@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\RequestController;
 use Illuminate\Support\Facades\Route;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
@@ -32,13 +33,29 @@ Route::prefix('dashboard')->group(function () {
     Route::get('attendance/check/{employeeId}', [AttendanceController::class, 'check'])->name('attendance.check');
     Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
     Route::post('attendance/checkout/store', [AttendanceController::class, 'checkoutStore'])->name('attendance.checkout.store');
-});
 
-Route::get('/debug-schema', function() {
-    return response()->json([
-        'employees_columns' => Schema::getColumnListing('employees'),
-        'positions_columns' => Schema::getColumnListing('positions')
-    ]);
+// Requests routes
+    Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
+    
+    // Leave Requests routes
+    Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])
+        ->name('leave-requests.create');
+    Route::post('leave-requests', [RequestController::class, 'storeLeaveRequest'])
+        ->name('leave-requests.store');
+    Route::post('leave-requests/{id}/approve', [RequestController::class, 'approveLeaveRequest'])
+        ->name('leave-requests.approve');
+    Route::post('leave-requests/{id}/reject', [RequestController::class, 'rejectLeaveRequest'])
+        ->name('leave-requests.reject');
+    
+    // Overtime Requests routes
+    Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])
+        ->name('overtime-requests.create');
+    Route::post('overtime-requests', [RequestController::class, 'storeOvertimeRequest'])
+        ->name('overtime-requests.store');
+    Route::post('overtime-requests/{id}/approve', [RequestController::class, 'approveOvertimeRequest'])
+        ->name('overtime-requests.approve');
+    Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])
+        ->name('overtime-requests.reject');
 });
 
 Route::get('/check-db', function() {
