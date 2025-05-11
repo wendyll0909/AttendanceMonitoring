@@ -56,6 +56,9 @@ Route::prefix('dashboard')->group(function () {
         ->name('overtime-requests.approve');
     Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])
         ->name('overtime-requests.reject');
+        Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
+Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])->name('leave-requests.create');
+Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])->name('overtime-requests.create');
 });
 
 Route::get('/check-db', function() {

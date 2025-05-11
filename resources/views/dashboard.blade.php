@@ -8,7 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
 </head>
 <body>
     <div class="container-fluid d-flex">
@@ -64,10 +63,10 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-   <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-    <i class="bi bi-list-check"></i> Requests
-</a>
-</li>
+                    <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                        <i class="bi bi-list-check"></i> Requests
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" hx-get="{{ url('/dashboard/reports') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
                         <i class="bi bi-file-earmark-text-fill"></i> Attendance Reports
@@ -241,9 +240,11 @@
         </div>
     </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-<script src="{{ asset('assets/js/app.js') }}"></script>
-<script src="{{ asset('assets/js/requests.js') }}"></script>
+    <!-- Load scripts in the correct order -->
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="{{ asset('assets/js/app.js') }}"></script>
+    @stack('scripts')
 </body>
 </html>

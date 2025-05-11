@@ -143,6 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 sidebar.classList.remove('visible');
                 console.log('Sidebar hidden after navigation, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
             }
+            // Re-process HTMX bindings
+            console.log('Re-processing HTMX after navigation');
+            htmx.process(document.body);
         }
     });
 
@@ -253,3 +256,8 @@ function downloadQR(qrCode) {
         }
     }
 }
+document.body.addEventListener('htmx:afterSwap', function() {
+    if (typeof htmx !== 'undefined') {
+        htmx.process(document.body);
+    }
+});
