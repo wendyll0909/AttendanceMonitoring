@@ -48,33 +48,33 @@ public function index(Request $request)
 }
     // Leave Request Methods
 public function createLeaveRequest()
-    {
-        $employees = Employee::all();
-        \Log::info('createLeaveRequest called', ['employee_count' => $employees->count()]);
-        return view('partials.leave-request-form', compact('employees'));
+{
+    $employees = Employee::all();
+    \Log::info('createLeaveRequest called', ['employee_count' => $employees->count()]);
+    $response = view('partials.leave-request-form', compact('employees'))->render();
+    \Log::info('createLeaveRequest response', ['content' => substr($response, 0, 1000)]); // Log first 1000 chars
+    return $response;
+}
+   public function storeLeaveRequest(Request $request)
+{
+    $validated = $request->validate([
+        'employee_id' => 'required|exists:employees,id',
+        'start_date' => 'required|date',
+        'end_date' => 'required|date|after_or_equal:start_date',
+        'reason' => 'required|string|max:255',
+    ]);
+
+    LeaveRequest::create($validated + ['status' => 'pending']);
+
+    if ($request->header('HX-Request')) {
+        $leaveRequests = LeaveRequest::with('employee')->orderBy('created_at', 'desc')->get();
+        return view('partials.leave-requests', compact('leaveRequests'));
     }
-    public function storeLeaveRequest(Request $request)
-    {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,employee_id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'required|string|max:255',
-        ]);
 
-        $validated['start_date'] = \Carbon\Carbon::parse($validated['start_date']);
-        $validated['end_date'] = \Carbon\Carbon::parse($validated['end_date']);
+    return redirect()->route('requests.index')
+        ->with('success', 'Leave request submitted successfully');
+}
 
-        LeaveRequest::create($validated + ['status' => 'pending']);
-
-        if ($request->header('HX-Request')) {
-            $leaveRequests = LeaveRequest::with('employee')->orderBy('created_at', 'desc')->get();
-            return view('partials.leave-requests', compact('leaveRequests'));
-        }
-
-        return redirect()->route('requests.index')
-            ->with('success', 'Leave request submitted successfully');
-    }
 
     public function approveLeaveRequest($id)
     {
@@ -103,32 +103,34 @@ public function createLeaveRequest()
     }
 
     // Overtime Request Methods
-   public function createOvertimeRequest()
-    {
-        $employees = Employee::all();
-        \Log::info('createOvertimeRequest called', ['employee_count' => $employees->count()]);
-        return view('partials.overtime-request-form', compact('employees'));
+ public function createOvertimeRequest()
+{
+    $employees = Employee::all();
+    \Log::info('createOvertimeRequest called', ['employee_count' => $employees->count()]);
+    $response = view('partials.overtime-request-form', compact('employees'))->render();
+    \Log::info('createOvertimeRequest response', ['content' => substr($response, 0, 1000)]); // Log first 1000 chars
+    return $response;
+}
+
+   public function storeOvertimeRequest(Request $request)
+{
+    $validated = $request->validate([
+        'employee_id' => 'required|exists:employees,id',
+        'start_time' => 'required|date',
+        'end_time' => 'required|date|after:start_time',
+        'reason' => 'required|string|max:255',
+    ]);
+
+    OvertimeRequest::create($validated + ['status' => 'pending']);
+
+    if ($request->header('HX-Request')) {
+        $overtimeRequests = OvertimeRequest::with('employee')->orderBy('created_at', 'desc')->get();
+        return view('partials.overtime-requests', compact('overtimeRequests'));
     }
 
-    public function storeOvertimeRequest(Request $request)
-    {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,employee_id',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
-            'reason' => 'required|string|max:255',
-        ]);
-
-        OvertimeRequest::create($validated + ['status' => 'pending']);
-
-        if ($request->header('HX-Request')) {
-            $overtimeRequests = OvertimeRequest::with('employee')->orderBy('created_at', 'desc')->get();
-            return view('partials.overtime-requests', compact('overtimeRequests'));
-        }
-
-        return redirect()->route('requests.index')
-            ->with('success', 'Overtime request submitted successfully');
-    }
+    return redirect()->route('requests.index')
+        ->with('success', 'Overtime request submitted successfully');
+}
 
     public function approveOvertimeRequest($id)
     {

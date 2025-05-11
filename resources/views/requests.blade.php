@@ -37,14 +37,17 @@
              aria-labelledby="leave-tab">
             <div class="d-flex justify-content-between align-items-center my-3">
                 <h3>Leave Requests</h3>
-                <button class="btn btn-primary" 
-                        hx-get="{{ route('leave-requests.create') }}"
-                        hx-target="#leave-request-modal-container"
-                        hx-swap="innerHTML">
-                    Create Leave Request
-                </button>
+               <!-- Leave Request Button -->
+<button class="btn btn-primary" 
+        data-bs-toggle="modal" 
+        data-bs-target="#leaveRequestModal"
+        hx-get="{{ route('leave-requests.create') }}"
+        hx-target="#leaveRequestModal .modal-body"
+        hx-swap="innerHTML"
+        hx-indicator="#leaveRequestModal .htmx-indicator">
+    Create Leave Request
+</button>
             </div>
-            <div id="leave-request-modal-container"></div>
             @if($leaveRequests->isEmpty())
                 <p>No leave requests found.</p>
             @else
@@ -57,19 +60,52 @@
              aria-labelledby="overtime-tab">
             <div class="d-flex justify-content-between align-items-center my-3">
                 <h3>Overtime Requests</h3>
-                <button class="btn btn-primary" 
-                        hx-get="{{ route('overtime-requests.create') }}"
-                        hx-target="#overtime-request-modal-container"
-                        hx-swap="innerHTML">
-                    Create Overtime Request
-                </button>
+              <!-- Overtime Request Button -->
+<button class="btn btn-primary" 
+        data-bs-toggle="modal" 
+        data-bs-target="#overtimeRequestModal"
+        hx-get="{{ route('overtime-requests.create') }}"
+        hx-target="#overtimeRequestModal .modal-body"
+        hx-swap="innerHTML"
+        hx-indicator="#overtimeRequestModal .htmx-indicator">
+    Create Overtime Request
+</button>
             </div>
-            <div id="overtime-request-modal-container"></div>
             @if($overtimeRequests->isEmpty())
                 <p>No overtime requests found.</p>
             @else
                 @include('partials.overtime-requests', ['overtimeRequests' => $overtimeRequests])
             @endif
+        </div>
+    </div>
+</div>
+
+<!-- Leave Request Modal -->
+<div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveRequestModalLabel">Create Leave Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="htmx-indicator">Loading form...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overtime Request Modal -->
+<div class="modal fade" id="overtimeRequestModal" tabindex="-1" aria-labelledby="overtimeRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="overtimeRequestModalLabel">Create Overtime Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="htmx-indicator">Loading form...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -94,52 +130,83 @@
 
         const requestsContainer = document.getElementById('requests-container');
         if (!requestsContainer) {
-            console.warn('requests-container not found, skipping HTMX processing');
+            console.warn('requests-container not found');
             return;
         }
 
         try {
             htmx.process(requestsContainer);
             console.log('HTMX processed requests-container');
-            const htmxElements = requestsContainer.querySelectorAll('[hx-get], [hx-post]');
-            console.log('HTMX elements found:', htmxElements.length);
         } catch (error) {
             console.error('Error processing HTMX for requests-container:', error);
         }
     }
 
-    function tryInitialize() {
-        const requestsContainer = document.getElementById('requests-container');
-        if (requestsContainer) {
-            initializeRequests();
-        } else {
-            console.warn('requests-container not found during initialization');
+    function showModal(modalId) {
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.error('Modal element not found:', modalId);
+            showMessage('Failed to load request form', 'danger');
+            return;
+        }
+        try {
+            const modal = new bootstrap.Modal(modalElement, { backdrop: 'static' });
+            modal.show();
+            console.log(`${modalId} shown`);
+        } catch (error) {
+            console.error('Failed to initialize Bootstrap modal:', error);
+            showMessage('Failed to open request form', 'danger');
         }
     }
 
-    try {
-        document.addEventListener('DOMContentLoaded', tryInitialize, { once: true });
-
-        document.body.addEventListener('htmx:afterSwap', function(evt) {
-            if (evt.detail.target.id === 'content-area' || evt.detail.target.id === 'requests-container') {
-                console.log('Re-initializing requests after swap');
-                tryInitialize();
+    function showMessage(message, type) {
+        try {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            const container = document.getElementById('alert-container') || document.getElementById('requests-container');
+            if (container) {
+                container.prepend(alertDiv);
+                setTimeout(() => alertDiv.remove(), 5000);
+            } else {
+                console.warn('Alert container not found');
             }
-        });
-
-        document.body.addEventListener('htmx:configRequest', function(evt) {
-            console.log('HTMX request configured:', evt.detail.path, 'Target:', evt.detail.target.id);
-        });
-
-        document.body.addEventListener('htmx:afterRequest', function(evt) {
-            console.log('HTMX request completed:', evt.detail.path, 'Success:', evt.detail.successful);
-            if (!evt.detail.successful) {
-                console.error('HTMX request failed:', evt.detail.xhr?.status, evt.detail.xhr?.responseText);
-            }
-        });
-    } catch (error) {
-        console.error('Error setting up HTMX event listeners:', error);
+        } catch (error) {
+            console.error('Error showing message:', error);
+        }
     }
+
+    document.addEventListener('htmx:afterRequest', function(evt) {
+        const requestUrl = evt.detail.elt?.getAttribute('hx-get') || evt.detail.elt?.getAttribute('hx-post');
+        if (!evt.detail.successful) {
+            console.error('HTMX request failed:', requestUrl);
+            showMessage('Failed to load form', 'danger');
+            return;
+        }
+
+        if (requestUrl?.includes('leave-requests/create')) {
+            console.log('Leave request form loaded successfully');
+            showModal('leaveRequestModal');
+        } else if (requestUrl?.includes('overtime-requests/create')) {
+            console.log('Overtime request form loaded successfully');
+            showModal('overtimeRequestModal');
+        }
+    });
+
+    document.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'content-area' || evt.detail.target.id === 'requests-container') {
+            console.log('Re-initializing requests after swap');
+            initializeRequests();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOMContentLoaded: Initializing requests');
+        initializeRequests();
+    }, { once: true });
 })();
 </script>
 @endpush
