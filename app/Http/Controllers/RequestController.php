@@ -9,35 +9,50 @@ use Illuminate\Http\Request;
 
 class RequestController extends Controller
 {
-   public function index(Request $request)
-{
-    $leaveRequests = LeaveRequest::with('employee')->orderBy('created_at', 'desc')->get();
-    $overtimeRequests = OvertimeRequest::with('employee')->orderBy('created_at', 'desc')->get();
-    \Log::info('Rendering requests page', [
-        'leaveRequests_count' => $leaveRequests->count(),
-        'overtimeRequests_count' => $overtimeRequests->count()
-    ]);
-
-    // Check for hash in URL
-    $url = $request->fullUrl();
-    $hash = parse_url($url, PHP_URL_FRAGMENT);
-    $tab = $hash === 'overtime' ? 'overtime' : ($request->get('type', 'leave'));
-
-    return view('requests', compact('leaveRequests', 'overtimeRequests', 'tab'));
-}
-
-    // Leave Request Methods
-public function createLeaveRequest()
+public function index(Request $request)
 {
     try {
-        $employees = Employee::active()->get();
-        \Log::info('createLeaveRequest called', ['employee_count' => $employees->count()]);
-        return view('partials.leave-request-form', compact('employees'));
+        $tab = $request->query('tab', 'leave');
+        
+        \Log::info('Fetching leave requests');
+        $leaveRequests = LeaveRequest::with('employee')->get();
+        \Log::info('Leave requests fetched', ['count' => $leaveRequests->count()]);
+        
+        \Log::info('Fetching overtime requests');
+        $overtimeRequests = OvertimeRequest::with('employee')->get();
+        \Log::info('Overtime requests fetched', ['count' => $overtimeRequests->count()]);
+        
+        \Log::info('Fetching employees');
+        $employees = Employee::all();
+        \Log::info('Employees fetched', ['count' => $employees->count()]);
+        
+        if ($request->header('HX-Request')) {
+            $response = view('requests', compact('leaveRequests', 'overtimeRequests', 'tab', 'employees'))->render();
+            \Log::info('HTMX Requests Response', ['content' => substr($response, 0, 500)]);
+            return $response;
+        }
+        
+        return view('dashboard', [
+            'content' => view('requests', compact('leaveRequests', 'overtimeRequests', 'tab', 'employees'))
+        ]);
     } catch (\Exception $e) {
-        \Log::error('Failed to load leave request form: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json(['error' => 'Failed to load form'], 500);
+        \Log::error('Error in Requests index', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        if ($request->header('HX-Request')) {
+            return response('<div class="alert alert-danger">Server error: ' . e($e->getMessage()) . '</div>', 500);
+        }
+        throw $e;
     }
 }
+    // Leave Request Methods
+public function createLeaveRequest()
+    {
+        $employees = Employee::all();
+        \Log::info('createLeaveRequest called', ['employee_count' => $employees->count()]);
+        return view('partials.leave-request-form', compact('employees'));
+    }
     public function storeLeaveRequest(Request $request)
     {
         $validated = $request->validate([
@@ -88,9 +103,10 @@ public function createLeaveRequest()
     }
 
     // Overtime Request Methods
-    public function createOvertimeRequest()
+   public function createOvertimeRequest()
     {
-        $employees = Employee::active()->get();
+        $employees = Employee::all();
+        \Log::info('createOvertimeRequest called', ['employee_count' => $employees->count()]);
         return view('partials.overtime-request-form', compact('employees'));
     }
 

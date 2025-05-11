@@ -34,31 +34,20 @@ Route::prefix('dashboard')->group(function () {
     Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
     Route::post('attendance/checkout/store', [AttendanceController::class, 'checkoutStore'])->name('attendance.checkout.store');
 
-// Requests routes
+    // Requests routes
     Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
-    
+
     // Leave Requests routes
-    Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])
-        ->name('leave-requests.create');
-    Route::post('leave-requests', [RequestController::class, 'storeLeaveRequest'])
-        ->name('leave-requests.store');
-    Route::post('leave-requests/{id}/approve', [RequestController::class, 'approveLeaveRequest'])
-        ->name('leave-requests.approve');
-    Route::post('leave-requests/{id}/reject', [RequestController::class, 'rejectLeaveRequest'])
-        ->name('leave-requests.reject');
+    Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])->name('leave-requests.create');
+    Route::post('leave-requests', [RequestController::class, 'storeLeaveRequest'])->name('leave-requests.store');
+    Route::post('leave-requests/{id}/approve', [RequestController::class, 'approveLeaveRequest'])->name('leave-requests.approve');
+    Route::post('leave-requests/{id}/reject', [RequestController::class, 'rejectLeaveRequest'])->name('leave-requests.reject');
     
     // Overtime Requests routes
-    Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])
-        ->name('overtime-requests.create');
-    Route::post('overtime-requests', [RequestController::class, 'storeOvertimeRequest'])
-        ->name('overtime-requests.store');
-    Route::post('overtime-requests/{id}/approve', [RequestController::class, 'approveOvertimeRequest'])
-        ->name('overtime-requests.approve');
-    Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])
-        ->name('overtime-requests.reject');
-        Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
-Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])->name('leave-requests.create');
-Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])->name('overtime-requests.create');
+    Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])->name('overtime-requests.create');
+    Route::post('overtime-requests', [RequestController::class, 'storeOvertimeRequest'])->name('overtime-requests.store');
+    Route::post('overtime-requests/{id}/approve', [RequestController::class, 'approveOvertimeRequest'])->name('overtime-requests.approve');
+    Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])->name('overtime-requests.reject');
 });
 
 Route::get('/check-db', function() {

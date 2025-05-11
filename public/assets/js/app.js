@@ -3,6 +3,13 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Bootstrap Modal available:', typeof bootstrap.Modal);
     console.log('HTMX available:', typeof htmx);
 
+    if (typeof htmx === 'undefined' || typeof bootstrap === 'undefined') {
+        console.warn('HTMX or Bootstrap not loaded, retrying in 100ms');
+        setTimeout(() => {
+            console.log('Retrying initialization - HTMX:', typeof htmx, 'Bootstrap:', typeof bootstrap);
+            // Re-run critical initialization logic if needed
+        }, 100);
+    }
     const sidebar = document.querySelector('.sidebar');
     const hamburgerMenu = document.querySelector('.hamburger-menu');
     const contentArea = document.getElementById('content-area');
@@ -143,13 +150,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 sidebar.classList.remove('visible');
                 console.log('Sidebar hidden after navigation, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
             }
-            // Re-process HTMX bindings
-            console.log('Re-processing HTMX after navigation');
-            htmx.process(document.body);
         }
     });
 
-    // Consolidated event delegation for edit buttons
     document.body.addEventListener('click', function (e) {
         if (e.target.classList.contains('edit-position') || e.target.classList.contains('edit-employee')) {
             e.preventDefault();
@@ -158,19 +161,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = e.target.getAttribute('data-id');
             console.log(`Edit ${type} button clicked`, { id });
 
-            // Determine modal and target
             const modalId = isPosition ? 'editPositionModal' : 'editEmployeeModal';
             const formTarget = isPosition ? '#edit-position-form' : '#edit-employee-form';
             const url = isPosition ? `/dashboard/positions/${id}` : `/dashboard/employees/${id}`;
 
-            // Verify modal exists
             const modalElement = document.getElementById(modalId);
             if (!modalElement) {
                 console.error(`Edit ${type} modal not found`);
                 return;
             }
 
-            // Initialize Bootstrap modal
             let modal;
             try {
                 modal = new bootstrap.Modal(modalElement);
@@ -179,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Trigger HTMX request
             htmx.ajax('GET', url, {
                 target: formTarget,
                 swap: 'innerHTML'
@@ -256,10 +255,20 @@ function downloadQR(qrCode) {
         }
     }
 }
+
 document.body.addEventListener('htmx:afterSwap', function(evt) {
     console.log('app.js: htmx:afterSwap for target:', evt.detail.target.id);
-    // Only process body if not handled by specific scripts
-    if (!evt.detail.target.id.includes('requests')) {
-        htmx.process(document.body);
+    
+    // Skip processing if the target doesn't exist or is already processed
+    if (!evt.detail.target || !evt.detail.target.id) return;
+    
+    // Only process non-requests content to avoid conflicts
+    if (!evt.detail.target.id.includes('requests') && 
+        evt.detail.target.id !== 'content-area') {
+        try {
+            htmx.process(evt.detail.target);
+        } catch (e) {
+            console.error('HTMX processing error:', e);
+        }
     }
 });
