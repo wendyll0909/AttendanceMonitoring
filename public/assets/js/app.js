@@ -256,8 +256,10 @@ function downloadQR(qrCode) {
         }
     }
 }
-document.body.addEventListener('htmx:afterSwap', function() {
-    if (typeof htmx !== 'undefined') {
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    console.log('app.js: htmx:afterSwap for target:', evt.detail.target.id);
+    // Only process body if not handled by specific scripts
+    if (!evt.detail.target.id.includes('requests')) {
         htmx.process(document.body);
     }
 });

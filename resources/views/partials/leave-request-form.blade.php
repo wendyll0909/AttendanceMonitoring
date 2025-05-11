@@ -10,11 +10,15 @@
                     @csrf
                     <div class="mb-3">
                         <label for="employee_id" class="form-label">Employee</label>
-                        <select class="form-control" id="employee_id" name="employee_id" required>
-                            @foreach($employees as $employee)
-                                <option value="{{ $employee->employee_id }}">{{ $employee->full_name }}</option>
-                            @endforeach
-                        </select>
+                       <select class="form-control" id="employee_id" name="employee_id" required>
+    @if($employees->isEmpty())
+        <option value="">No active employees available</option>
+    @else
+        @foreach($employees as $employee)
+            <option value="{{ $employee->employee_id }}">{{ $employee->full_name }}</option>
+        @endforeach
+    @endif
+</select>
                     </div>
                     <div class="mb-3">
                         <label for="start_date" class="form-label">Start Date</label>

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class RequestController extends Controller
 {
-    public function index(Request $request)
+   public function index(Request $request)
 {
     $leaveRequests = LeaveRequest::with('employee')->orderBy('created_at', 'desc')->get();
     $overtimeRequests = OvertimeRequest::with('employee')->orderBy('created_at', 'desc')->get();
@@ -17,15 +17,21 @@ class RequestController extends Controller
         'leaveRequests_count' => $leaveRequests->count(),
         'overtimeRequests_count' => $overtimeRequests->count()
     ]);
-    $tab = $request->get('type', 'leave');
+
+    // Check for hash in URL
+    $url = $request->fullUrl();
+    $hash = parse_url($url, PHP_URL_FRAGMENT);
+    $tab = $hash === 'overtime' ? 'overtime' : ($request->get('type', 'leave'));
+
     return view('requests', compact('leaveRequests', 'overtimeRequests', 'tab'));
 }
 
     // Leave Request Methods
- public function createLeaveRequest()
+public function createLeaveRequest()
 {
     try {
         $employees = Employee::active()->get();
+        \Log::info('createLeaveRequest called', ['employee_count' => $employees->count()]);
         return view('partials.leave-request-form', compact('employees'));
     } catch (\Exception $e) {
         \Log::error('Failed to load leave request form: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
