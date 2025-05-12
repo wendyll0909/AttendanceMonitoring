@@ -373,10 +373,15 @@ class AttendanceController extends Controller
     try {
         DB::beginTransaction();
 
-        // Get today's attendance records
-        $attendances = Attendance::where('date', now()->toDateString())->get();
+        // Get today's date
         $batchDate = now()->toDateString();
 
+        // Delete existing attendance batch records for the same batch_date
+        AttendanceBatch::where('batch_date', $batchDate)->delete();
+
+        // Get today's attendance records
+        $attendances = Attendance::where('date', $batchDate)->get();
+        
         // Get all active employees
         $allEmployees = Employee::where('status', 'active')->pluck('employee_id')->toArray();
         $presentEmployeeIds = $attendances->pluck('employee_id')->toArray();
@@ -407,12 +412,15 @@ class AttendanceController extends Controller
         }
 
         // Clear today's attendance records
-        Attendance::where('date', now()->toDateString())->delete();
+        Attendance::where('date', $batchDate)->delete();
 
         DB::commit();
 
         // Create an empty paginator for present
-        $emptyPresent = new LengthAwarePaginator([], 0, 10, 1, ['path' => route('attendance.record'), 'pageName' => 'present_page']);
+        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1, [
+            'path' => route('attendance.record'),
+            'pageName' => 'present_page'
+        ]);
 
         session()->flash('success', 'Attendance data cleared and saved as a batch successfully.');
         return response()->view('attendance.record-attendance', [
@@ -430,7 +438,10 @@ class AttendanceController extends Controller
         session()->flash('error', 'Failed to clear attendance data: ' . $e->getMessage());
 
         // Create an empty paginator for present in case of error
-        $emptyPresent = new LengthAwarePaginator([], 0, 10, 1, ['path' => route('attendance.record'), 'pageName' => 'present_page']);
+        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1, [
+            'path' => route('attendance.record'),
+            'pageName' => 'present_page'
+        ]);
 
         return response()->view('attendance.record-attendance', [
             'present' => $emptyPresent,

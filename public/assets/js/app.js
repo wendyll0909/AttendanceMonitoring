@@ -305,3 +305,17 @@ function downloadQR(qrCode) {
         }
     }
 }
+// In app.js
+document.addEventListener('htmx:responseError', function(evt) {
+    console.error('HTMX Error:', evt.detail);
+    const target = evt.detail.target || document.getElementById('content-area');
+    if (target) {
+        target.innerHTML = `
+            <div class="alert alert-danger">
+                Request failed: ${evt.detail.xhr.statusText}
+                ${evt.detail.xhr.responseText ? `<small>${evt.detail.xhr.responseText.substring(0, 200)}</small>` : ''}
+            </div>
+            ${target.innerHTML}
+        `;
+    }
+});

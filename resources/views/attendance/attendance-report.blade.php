@@ -44,52 +44,59 @@
         </div>
     @endif
 
-    <!-- Present Employees Table -->
-    <h3>Present Employees ({{ $selectedDate }})</h3>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Check-In Time</th>
-                    <th>Check-Out Time</th>
-                    <th>Late Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($present as $attendance)
-                    <tr>
-                        <td>{{ $attendance->employee->full_name }}</td>
-                        <td>{{ $attendance->employee->position->position_name ?? 'N/A' }}</td>
-                        <td>{{ $attendance->check_in_time ?? 'N/A' }}</td>
-                        <td>{{ $attendance->check_out_time ?? 'N/A' }}</td>
-                        <td>{{ $attendance->late_status ? 'Yes' : 'No' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    <!-- Tables Container -->
+    <div class="tables-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <!-- Present Employees Table -->
+        <div class="table-wrapper" style="flex: 1; min-width: 0;">
+            <h3>Present Employees ({{ $selectedDate }})</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Position</th>
+                            <th>Check-In Time</th>
+                            <th>Check-Out Time</th>
+                            <th>Late Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($present as $attendance)
+                            <tr>
+                                <td>{{ $attendance->employee->full_name }}</td>
+                                <td>{{ $attendance->employee->position->position_name ?? 'N/A' }}</td>
+                                <td>{{ $attendance->check_in_time ?? 'N/A' }}</td>
+                                <td>{{ $attendance->check_out_time ?? 'N/A' }}</td>
+                                <td>{{ $attendance->late_status ? 'Yes' : 'No' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <!-- Absent Employees Table -->
-    <h3>Absent Employees ({{ $selectedDate }})</h3>
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($absent as $employee)
-                    <tr>
-                        <td>{{ $employee->employee->full_name }}</td>
-                        <td>{{ $employee->employee->position->position_name ?? 'N/A' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <!-- Absent Employees Table -->
+        <div class="table-wrapper" style="flex: 1; min-width: 0;">
+            <h3>Absent Employees ({{ $selectedDate }})</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Position</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($absent as $employee)
+                            <tr>
+                                <td>{{ $employee->employee->full_name }}</td>
+                                <td>{{ $employee->employee->position->position_name ?? 'N/A' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -101,6 +108,24 @@
     color: #333333;
     font-family: 'Poppins', sans-serif;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure tables take equal width and adjust for smaller screens */
+.tables-container {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.table-wrapper {
+    flex: 1;
+    min-width: 300px; /* Minimum width to prevent tables from becoming too narrow */
+}
+
+@media (max-width: 768px) {
+    .tables-container {
+        flex-direction: column;
+    }
 }
 </style>
 
