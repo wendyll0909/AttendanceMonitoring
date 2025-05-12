@@ -5,6 +5,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\PayrollController;
 use Illuminate\Support\Facades\Route;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
@@ -38,7 +39,11 @@ Route::prefix('dashboard')->group(function () {
     Route::post('attendance/clear', [AttendanceController::class, 'clear'])->name('attendance.clear');
     Route::get('attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
     Route::get('attendance/report/pdf/{date}', [AttendanceController::class, 'exportPdf'])->name('attendance.report.pdf');
-
+    
+    // Payroll routes
+    Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');
+    Route::get('payroll/export/{month}', [PayrollController::class, 'exportPdf'])->name('payroll.export');
+    
     // Requests routes
     Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
 

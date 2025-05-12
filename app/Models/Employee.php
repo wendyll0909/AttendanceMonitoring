@@ -20,6 +20,10 @@ class Employee extends Model
     {
         return trim("{$this->fname} {$this->mname} {$this->lname}");
     }
+    public function attendanceBatches()
+    {
+        return $this->hasMany(AttendanceBatch::class, 'employee_id', 'employee_id');
+    }
     public function scopeActive($query)
 {
     return $query->where('status', 'active');

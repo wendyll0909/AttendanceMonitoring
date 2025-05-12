@@ -79,9 +79,8 @@
    hx-ext="disable-json">
     <i class="bi bi-list-check"></i> Requests
 </a>
-                </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/payroll') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+                    <a href="#" class="nav-link" hx-get="{{ route('payroll.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                         <i class="bi bi-currency-dollar"></i> Payroll Export
                     </a>
                 </li>
