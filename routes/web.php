@@ -34,6 +34,10 @@ Route::prefix('dashboard')->group(function () {
     Route::get('attendance/check/{employeeId}', [AttendanceController::class, 'check'])->name('attendance.check');
     Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
     Route::post('attendance/checkout/store', [AttendanceController::class, 'checkoutStore'])->name('attendance.checkout.store');
+    Route::get('attendance/record', [AttendanceController::class, 'record'])->name('attendance.record');
+    Route::post('attendance/clear', [AttendanceController::class, 'clear'])->name('attendance.clear');
+    Route::get('attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
+    Route::get('attendance/report/pdf/{date}', [AttendanceController::class, 'exportPdf'])->name('attendance.report.pdf');
 
     // Requests routes
     Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
@@ -47,7 +51,7 @@ Route::prefix('dashboard')->group(function () {
     // Overtime Requests routes
     Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])->name('overtime-requests.create');
     Route::post('overtime-requests', [RequestController::class, 'storeOvertimeRequest'])->name('overtime-requests.store');
-    Route::post('overtime-requests/{id}/approve', [RequestController::class, 'approveOvertimeRequest'])->name('overtime-requests.approve');
+    Route::post('overtime-requests/{id}/approve', [AttendanceController::class, 'approveOvertimeRequest'])->name('overtime-requests.approve');
     Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])->name('overtime-requests.reject');
 });
 

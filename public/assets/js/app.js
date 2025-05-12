@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.warn('HTMX or Bootstrap not loaded, retrying in 100ms');
         setTimeout(() => {
             console.log('Retrying initialization - HTMX:', typeof htmx, 'Bootstrap:', typeof bootstrap);
-            // Re-run critical initialization logic if needed
         }, 100);
     }
+
     const sidebar = document.querySelector('.sidebar');
     const hamburgerMenu = document.querySelector('.hamburger-menu');
     const contentArea = document.getElementById('content-area');
@@ -105,18 +105,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const formIds = ['addEmployeeForm', 'editEmployeeForm', 'addPositionForm', 'editPositionForm', 'editAttendanceForm'];
         const isDeleteForm = e.target && e.target.id && (e.target.id.startsWith('deletePositionForm_') || e.target.id.startsWith('deleteAttendanceForm_'));
         const isFormRequest = e.target && e.target.id && (formIds.includes(e.target.id) || isDeleteForm);
-    
+
         if (isFormRequest && e.detail.successful) {
             document.querySelectorAll('.modal').forEach(modalEl => {
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
             });
-    
+
             const errorContainer = document.getElementById('error-message');
             if (errorContainer) errorContainer.style.display = 'none';
             const fallbackError = document.getElementById('fallback-error');
             if (fallbackError) fallbackError.style.display = 'none';
-    
+
             if (e.target.id === 'editEmployeeForm' || e.target.id === 'editAttendanceForm') {
                 const successContainer = document.getElementById('success-message');
                 if (successContainer) {
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-    
+
         if (isFormRequest && !e.detail.successful) {
             console.error(`HTMX request failed for ${e.target.id || 'unknown form'}:`, e.detail.xhr.status, e.detail.xhr.responseText);
             const errorContainer = document.getElementById('error-message') || document.getElementById('fallback-error');
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 errorContainer.style.display = 'block';
             }
         }
-    
+
         if (typeof isNavigating !== 'undefined' && isNavigating) {
             isNavigating = false;
             console.log('Navigation completed, isNavigating reset, states:', { isNavigating, isSidebarToggled });
@@ -231,6 +231,56 @@ document.addEventListener('DOMContentLoaded', function () {
             if (qrImage) qrImage.src = '';
         });
     }
+
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        console.log('app.js: htmx:afterSwap for target:', evt.detail.target.id);
+        
+        // Skip processing if the target doesn't exist or is already processed
+        if (!evt.detail.target || !evt.detail.target.id) return;
+        
+        // Only process non-requests content to avoid conflicts
+        if (!evt.detail.target.id.includes('requests') && 
+            evt.detail.target.id !== 'content-area') {
+            try {
+                htmx.process(evt.detail.target);
+            } catch (e) {
+                console.error('HTMX processing error:', e);
+            }
+        }
+
+        // Reinitialize scripts for specific sections
+        if (evt.detail.target.id === 'attendance-checkin-section') {
+            if (typeof window.initUploadListeners === 'function') {
+                window.initUploadListeners();
+            }
+            if (typeof window.initCameraListeners === 'function') {
+                window.initCameraListeners();
+            }
+        }
+
+        // Reinitialize clock for attendance sections
+        if (evt.detail.target.id === 'attendance-section' || evt.detail.target.id === 'attendance-report-section') {
+            function updateClock() {
+                const now = new Date();
+                const options = {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                };
+                const formattedDateTime = now.toLocaleString('en-US', options);
+                const clockElement = document.getElementById('datetime-clock');
+                if (clockElement) {
+                    clockElement.textContent = formattedDateTime;
+                }
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+    });
 });
 
 function downloadQR(qrCode) {
@@ -255,30 +305,3 @@ function downloadQR(qrCode) {
         }
     }
 }
-
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    console.log('app.js: htmx:afterSwap for target:', evt.detail.target.id);
-    
-    // Skip processing if the target doesn't exist or is already processed
-    if (!evt.detail.target || !evt.detail.target.id) return;
-    
-    // Only process non-requests content to avoid conflicts
-    if (!evt.detail.target.id.includes('requests') && 
-        evt.detail.target.id !== 'content-area') {
-        try {
-            htmx.process(evt.detail.target);
-        } catch (e) {
-            console.error('HTMX processing error:', e);
-        }
-    }
-
-    // Reinitialize check-in specific scripts
-    if (evt.detail.target.id === 'attendance-checkin-section') {
-        if (typeof window.initUploadListeners === 'function') {
-            window.initUploadListeners();
-        }
-        if (typeof window.initCameraListeners === 'function') {
-            window.initCameraListeners();
-        }
-    }
-});

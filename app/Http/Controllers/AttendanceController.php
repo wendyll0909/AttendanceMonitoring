@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\AttendanceBatch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\PDF;
 
 class AttendanceController extends Controller
 {
@@ -35,31 +37,31 @@ class AttendanceController extends Controller
     }
 
     public function updateDeadline(Request $request)
-{
-    try {
-        $request->validate([
-            'check_in_deadline' => 'required|date_format:H:i',
-        ]);
+    {
+        try {
+            $request->validate([
+                'check_in_deadline' => 'required|date_format:H:i',
+            ]);
 
-        $deadline = $request->check_in_deadline;
-        session(['check_in_deadline' => $deadline]);
+            $deadline = $request->check_in_deadline;
+            session(['check_in_deadline' => $deadline]);
 
-        \Log::info('Attempting to render view: checkin');
-        $view = view('attendance.checkin', [
-            'checkInDeadline' => $deadline,
-            'checkins' => Attendance::whereDate('date', now()->toDateString())->get(),
-            'success' => 'Check-in deadline updated successfully.'
-        ]);
-        \Log::info('View rendered successfully');
-        return $view;
-    } catch (ValidationException $e) {
-        \Log::error('Validation failed: ' . json_encode($e->errors()));
-        return redirect()->route('attendance.checkin')->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-        \Log::error('Error in updateDeadline: ' . $e->getMessage());
-        return redirect()->route('attendance.checkin')->with('error', 'Failed to update deadline: ' . $e->getMessage());
+            \Log::info('Attempting to render view: checkin');
+            $view = view('attendance.checkin', [
+                'checkInDeadline' => $deadline,
+                'checkins' => Attendance::whereDate('date', now()->toDateString())->get(),
+                'success' => 'Check-in deadline updated successfully.'
+            ]);
+            \Log::info('View rendered successfully');
+            return $view;
+        } catch (ValidationException $e) {
+            \Log::error('Validation failed: ' . json_encode($e->errors()));
+            return redirect()->route('attendance.checkin')->withErrors($e->errors())->withInput();
+        } catch (\Exception $e) {
+            \Log::error('Error in updateDeadline: ' . $e->getMessage());
+            return redirect()->route('attendance.checkin')->with('error', 'Failed to update deadline: ' . $e->getMessage());
+        }
     }
-}
 
     public function store(Request $request)
     {
@@ -320,6 +322,194 @@ class AttendanceController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['hasCheckin' => false, 'error' => 'Failed to check status'], 500);
+        }
+    }
+
+    public function record(Request $request)
+    {
+        try {
+            $searchPresent = $request->query('search_present');
+            $searchAbsent = $request->query('search_absent');
+
+            // Present employees (with check-in data)
+            $present = Attendance::with('employee.position')
+                ->where('date', now()->toDateString())
+                ->when($searchPresent, function ($query, $search) {
+                    return $query->whereHas('employee', function ($q) use ($search) {
+                        $q->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
+                    });
+                })
+                ->paginate(10, ['*'], 'present_page');
+
+            // Absent employees (active employees with no check-in data today)
+            $absent = Employee::with('position')
+                ->where('status', 'active')
+                ->whereNotIn('employee_id', function ($query) {
+                    $query->select('employee_id')
+                        ->from('attendances')
+                        ->where('date', now()->toDateString());
+                })
+                ->when($searchAbsent, function ($query, $search) {
+                    return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
+                })
+                ->paginate(10, ['*'], 'absent_page');
+
+            return view('attendance.record-attendance', compact('present', 'absent'));
+        } catch (\Exception $e) {
+            Log::error('Record attendance page load failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->view('attendance.record-attendance', [
+                'present' => collect([]),
+                'absent' => collect([]),
+                'error' => 'Failed to load record attendance page: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function clear(Request $request)
+{
+    try {
+        DB::beginTransaction();
+
+        // Get today's attendance records
+        $attendances = Attendance::where('date', now()->toDateString())->get();
+        $batchDate = now()->toDateString();
+
+        // Get all active employees
+        $allEmployees = Employee::where('status', 'active')->pluck('employee_id')->toArray();
+        $presentEmployeeIds = $attendances->pluck('employee_id')->toArray();
+        $absentEmployeeIds = array_diff($allEmployees, $presentEmployeeIds);
+
+        // Save present employees to attendance_batches
+        foreach ($attendances as $attendance) {
+            AttendanceBatch::create([
+                'batch_date' => $batchDate,
+                'employee_id' => $attendance->employee_id,
+                'check_in_time' => $attendance->check_in_time,
+                'check_out_time' => $attendance->check_out_time,
+                'check_in_method' => $attendance->check_in_method,
+                'check_out_method' => $attendance->check_out_method,
+                'check_in_deadline' => $attendance->check_in_deadline,
+                'late_status' => $attendance->late_status,
+                'absent' => false,
+            ]);
+        }
+
+        // Save absent employees to attendance_batches
+        foreach ($absentEmployeeIds as $employeeId) {
+            AttendanceBatch::create([
+                'batch_date' => $batchDate,
+                'employee_id' => $employeeId,
+                'absent' => true,
+            ]);
+        }
+
+        // Clear today's attendance records
+        Attendance::where('date', now()->toDateString())->delete();
+
+        DB::commit();
+
+        // Create an empty paginator for present
+        $emptyPresent = new LengthAwarePaginator([], 0, 10, 1, ['path' => route('attendance.record'), 'pageName' => 'present_page']);
+
+        session()->flash('success', 'Attendance data cleared and saved as a batch successfully.');
+        return response()->view('attendance.record-attendance', [
+            'present' => $emptyPresent,
+            'absent' => Employee::with('position')
+                ->where('status', 'active')
+                ->paginate(10, ['*'], 'absent_page'),
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Clear attendance failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        session()->flash('error', 'Failed to clear attendance data: ' . $e->getMessage());
+
+        // Create an empty paginator for present in case of error
+        $emptyPresent = new LengthAwarePaginator([], 0, 10, 1, ['path' => route('attendance.record'), 'pageName' => 'present_page']);
+
+        return response()->view('attendance.record-attendance', [
+            'present' => $emptyPresent,
+            'absent' => Employee::with('position')
+                ->where('status', 'active')
+                ->paginate(10, ['*'], 'absent_page'),
+            'error' => 'Failed to clear attendance data: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+    public function report(Request $request)
+    {
+        try {
+            $selectedDate = $request->query('date', now()->toDateString());
+            if (!Carbon::hasFormat($selectedDate, 'Y-m-d')) {
+                $selectedDate = now()->toDateString();
+                session()->flash('error', 'Invalid date format. Using current date.');
+            }
+
+            // Present employees from attendance_batches
+            $present = AttendanceBatch::with('employee.position')
+                ->where('batch_date', $selectedDate)
+                ->where('absent', false)
+                ->get();
+
+            // Absent employees from attendance_batches
+            $absent = AttendanceBatch::with('employee.position')
+                ->where('batch_date', $selectedDate)
+                ->where('absent', true)
+                ->get();
+
+            return view('attendance.attendance-report', compact('present', 'absent', 'selectedDate'));
+        } catch (\Exception $e) {
+            Log::error('Attendance report page load failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->view('attendance.attendance-report', [
+                'present' => collect([]),
+                'absent' => collect([]),
+                'selectedDate' => now()->toDateString(),
+                'error' => 'Failed to load attendance report: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function exportPdf(Request $request, $date)
+    {
+        try {
+            if (!Carbon::hasFormat($date, 'Y-m-d')) {
+                throw new \Exception('Invalid date format');
+            }
+
+            // Fetch present and absent employees
+            $present = AttendanceBatch::with('employee.position')
+                ->where('batch_date', $date)
+                ->where('absent', false)
+                ->get();
+            $absent = AttendanceBatch::with('employee.position')
+                ->where('batch_date', $date)
+                ->where('absent', true)
+                ->get();
+
+            // Load the PDF view
+            $pdf = PDF::loadView('attendance.report-pdf', [
+                'present' => $present,
+                'absent' => $absent,
+                'selectedDate' => $date
+            ]);
+
+            return $pdf->download("attendance_report_$date.pdf");
+        } catch (\Exception $e) {
+            Log::error('PDF export failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            session()->flash('error', 'Failed to export PDF: ' . $e->getMessage());
+            return redirect()->route('attendance.report', ['date' => $date]);
         }
     }
 }

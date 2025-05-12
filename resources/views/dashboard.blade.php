@@ -24,56 +24,57 @@
             <h1>MENU</h1>
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                    <a href="#" class="nav-link" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                         <i class="bi bi-house-fill"></i> Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ route('employees.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar data-toggle-dropdown>
+                    <a href="#" class="nav-link" hx-get="{{ route('employees.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar data-toggle-dropdown>
                         <i class="bi bi-people-fill"></i> Employees
                     </a>
                     <ul class="employee-dropdown" style="display: none;">
                         <li>
-                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('employees.inactive') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('employees.inactive') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                                 View Inactive Employees
                             </a>
                         </li>
                         <li>
-                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('positions.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('positions.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                                 View Positions
                             </a>
                         </li>
                     </ul>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" data-toggle-dropdown>
-                        <i class="bi bi-calendar2-plus-fill"></i> Record Attendance
-                    </a>
-                    <ul class="attendance-dropdown" style="display: none;">
-                        <li>
-                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkin') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-                                Check In
-                            </a>
-                        </li>
-                        <li>
-                            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkout') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-                                Check Out
-                            </a>
-                        </li>
-                    </ul>
-                </li>
+    <a href="#" class="nav-link" data-toggle-dropdown hx-get="{{ route('attendance.record') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+        <i class="bi bi-calendar2-plus-fill"></i> Attendance
+    </a>
+    <ul class="attendance-dropdown" style="display: none;">
+        <li>
+            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkin') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+                Check In
+            </a>
+        </li>
+        <li>
+            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkout') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+                Check Out
+            </a>
+        </li>
+       
+        <li>
+            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.report') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+                Attendance Reports
+            </a>
+        </li>
+    </ul>
+</li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                    <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                         <i class="bi bi-list-check"></i> Requests
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/reports') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
-                        <i class="bi bi-file-earmark-text-fill"></i> Attendance Reports
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/payroll') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>
+                    <a href="#" class="nav-link" hx-get="{{ url('/dashboard/payroll') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                         <i class="bi bi-currency-dollar"></i> Payroll Export
                     </a>
                 </li>
@@ -83,7 +84,7 @@
             <!-- Breadcrumbs -->
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb" id="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" data-persist-sidebar>Home</a></li>
+                    <li class="breadcrumb-item"><a href="#" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>Home</a></li>
                 </ol>
             </nav>
             <!-- Default Dashboard Content -->
