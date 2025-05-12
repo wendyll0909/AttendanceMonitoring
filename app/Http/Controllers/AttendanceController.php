@@ -7,6 +7,8 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
@@ -16,8 +18,9 @@ class AttendanceController extends Controller
             $checkins = Attendance::with('employee')
                 ->where('date', now()->toDateString())
                 ->get();
+            $checkInDeadline = session('check_in_deadline', '08:00:00');
 
-            return view('attendance.checkin', compact('checkins'));
+            return view('attendance.checkin', compact('checkins', 'checkInDeadline'));
         } catch (\Exception $e) {
             Log::error('Check-in page load failed', [
                 'error' => $e->getMessage(),
@@ -25,17 +28,44 @@ class AttendanceController extends Controller
             ]);
             return response()->view('attendance.checkin', [
                 'checkins' => collect([]),
-                'error' => 'Failed to load check-in page: ' . $e->getMessage()
+                'error' => 'Failed to load check-in page: ' . $e->getMessage(),
+                'checkInDeadline' => '08:00:00'
             ], 500);
         }
     }
 
-     public function store(Request $request)
+    public function updateDeadline(Request $request)
+{
+    try {
+        $request->validate([
+            'check_in_deadline' => 'required|date_format:H:i',
+        ]);
+
+        $deadline = $request->check_in_deadline;
+        session(['check_in_deadline' => $deadline]);
+
+        \Log::info('Attempting to render view: checkin');
+        $view = view('attendance.checkin', [
+            'checkInDeadline' => $deadline,
+            'checkins' => Attendance::whereDate('date', now()->toDateString())->get(),
+            'success' => 'Check-in deadline updated successfully.'
+        ]);
+        \Log::info('View rendered successfully');
+        return $view;
+    } catch (ValidationException $e) {
+        \Log::error('Validation failed: ' . json_encode($e->errors()));
+        return redirect()->route('attendance.checkin')->withErrors($e->errors())->withInput();
+    } catch (\Exception $e) {
+        \Log::error('Error in updateDeadline: ' . $e->getMessage());
+        return redirect()->route('attendance.checkin')->with('error', 'Failed to update deadline: ' . $e->getMessage());
+    }
+}
+
+    public function store(Request $request)
     {
         try {
             DB::beginTransaction();
 
-            // First validate and get employee ID
             $validation = $this->validateRequest($request);
             if ($validation['error']) {
                 DB::commit();
@@ -45,7 +75,6 @@ class AttendanceController extends Controller
             $employeeId = $validation['employeeId'];
             $checkInMethod = $validation['method'];
 
-            // Check for existing check-in with lock
             $existingCheckin = Attendance::where('employee_id', $employeeId)
                 ->where('date', now()->toDateString())
                 ->whereNotNull('check_in_time')
@@ -57,13 +86,18 @@ class AttendanceController extends Controller
                 return response()->json(['error' => 'Employee already checked in today'], 422);
             }
 
-            // Process the check-in
             $now = now();
+            $checkInDeadlineTime = session('check_in_deadline', '08:00:00');
+            $checkInDeadline = Carbon::today()->setTimeFromTimeString($checkInDeadlineTime);
+            $isLate = $now->greaterThan($checkInDeadline);
+
             $attendance = Attendance::create([
                 'employee_id' => $employeeId,
                 'date' => $now->toDateString(),
                 'check_in_time' => $now->toTimeString(),
                 'check_in_method' => $checkInMethod,
+                'check_in_deadline' => $checkInDeadlineTime,
+                'late_status' => $isLate
             ]);
 
             DB::commit();
@@ -117,33 +151,36 @@ class AttendanceController extends Controller
         $checkins = Attendance::with('employee')
             ->where('date', now()->toDateString())
             ->get();
+        $checkInDeadline = session('check_in_deadline', '08:00:00');
 
         return response()->view('attendance.checkin', [
             'checkins' => $checkins,
-            'success' => 'Check-in recorded successfully'
+            'success' => 'Check-in recorded successfully',
+            'checkInDeadline' => $checkInDeadline
         ]);
     }
+
     public function checkout(Request $request)
-{
-    try {
-        $checkins = Attendance::with('employee')
-            ->where('date', now()->toDateString())
-            ->get();
+    {
+        try {
+            $checkins = Attendance::with('employee')
+                ->where('date', now()->toDateString())
+                ->get();
 
-        return view('attendance.checkout', compact('checkins'));
-    } catch (\Exception $e) {
-        Log::error('Check-out page load failed', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return response()->view('attendance.checkout', [
-            'checkins' => collect([]),
-            'error' => 'Failed to load check-out page: ' . $e->getMessage()
-        ], 500);
+            return view('attendance.checkout', compact('checkins'));
+        } catch (\Exception $e) {
+            Log::error('Check-out page load failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->view('attendance.checkout', [
+                'checkins' => collect([]),
+                'error' => 'Failed to load check-out page: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
 
-   public function checkoutStore(Request $request)
+    public function checkoutStore(Request $request)
     {
         try {
             $employeeId = null;
@@ -158,7 +195,7 @@ class AttendanceController extends Controller
                 $checkOutMethod = $request->input('method') === 'qr_camera' ? 'qr_camera' : 'qr_upload';
             } elseif ($request->has('employee_id')) {
                 $employeeId = $request->input('employee_id');
-                $checkOutMethod = 'manual'; // Used for Check-Out button
+                $checkOutMethod = 'manual';
             } else {
                 return response()->json(['error' => 'No employee selected or QR code provided'], 422);
             }
@@ -209,63 +246,64 @@ class AttendanceController extends Controller
         }
     }
 
- public function destroy($id)
-{
-    try {
-        DB::beginTransaction();
-        $attendance = Attendance::findOrFail($id);
-        $employeeId = $attendance->employee_id;
-        $date = $attendance->date;
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+            $attendance = Attendance::findOrFail($id);
+            $employeeId = $attendance->employee_id;
+            $date = $attendance->date;
 
-        if ($attendance->check_out_time) {
-            // Clear check-out time and method
-            $attendance->update([
-                'check_out_time' => null,
-                'check_out_method' => null,
-            ]);
-            Log::info('Check-out cleared', [
-                'attendance_id' => $id,
-                'employee_id' => $employeeId,
-                'date' => $date
-            ]);
-            DB::commit();
+            if ($attendance->check_out_time) {
+                $attendance->update([
+                    'check_out_time' => null,
+                    'check_out_method' => null,
+                ]);
+                Log::info('Check-out cleared', [
+                    'attendance_id' => $id,
+                    'employee_id' => $employeeId,
+                    'date' => $date
+                ]);
+                DB::commit();
 
-            $checkins = Attendance::with('employee')
-                ->where('date', now()->toDateString())
-                ->get();
-            return response()->view('attendance.checkout', [
-                'checkins' => $checkins,
-                'success' => 'Check-out cleared successfully'
-            ]);
-        } else {
-            // Delete check-in record
-            $attendance->delete();
-            Log::info('Check-in record deleted', [
-                'attendance_id' => $id,
-                'employee_id' => $employeeId,
-                'date' => $date
-            ]);
-            DB::commit();
+                $checkins = Attendance::with('employee')
+                    ->where('date', now()->toDateString())
+                    ->get();
+                return response()->view('attendance.checkout', [
+                    'checkins' => $checkins,
+                    'success' => 'Check-out cleared successfully'
+                ]);
+            } else {
+                $attendance->delete();
+                Log::info('Check-in record deleted', [
+                    'attendance_id' => $id,
+                    'employee_id' => $employeeId,
+                    'date' => $date
+                ]);
+                DB::commit();
 
-            $checkins = Attendance::with('employee')
-                ->where('date', now()->toDateString())
-                ->get();
-            return response()->view('attendance.checkin', [
-                'checkins' => $checkins,
-                'success' => 'Check-in deleted successfully'
+                $checkins = Attendance::with('employee')
+                    ->where('date', now()->toDateString())
+                    ->get();
+                $checkInDeadline = session('check_in_deadline', '08:00:00');
+                return response()->view('attendance.checkin', [
+                    'checkins' => $checkins,
+                    'success' => 'Check-in deleted successfully',
+                    'checkInDeadline' => $checkInDeadline
+                ]);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Check-in/check-out deletion failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
+            return response()->json([
+                'error' => 'Failed to delete or clear record: ' . $e->getMessage()
+            ], 500);
         }
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Check-in/check-out deletion failed', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return response()->json([
-            'error' => 'Failed to delete or clear record: ' . $e->getMessage()
-        ], 500);
     }
-}
+
     public function check($employeeId)
     {
         try {

@@ -271,4 +271,14 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
             console.error('HTMX processing error:', e);
         }
     }
+
+    // Reinitialize check-in specific scripts
+    if (evt.detail.target.id === 'attendance-checkin-section') {
+        if (typeof window.initUploadListeners === 'function') {
+            window.initUploadListeners();
+        }
+        if (typeof window.initCameraListeners === 'function') {
+            window.initCameraListeners();
+        }
+    }
 });

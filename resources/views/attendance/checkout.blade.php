@@ -75,68 +75,75 @@ console.log('Initial script running: Confirming JavaScript execution');
                     </div>
                 @endif
                 <div class="table-responsive">
-    <table class="table table-bordered" id="checkinsTable">
-        <thead>
-            <tr>
-                <th>Employee</th>
-                <th>Check-In Time</th>
-                <th>Check-In Method</th> <!-- moved here -->
-                <th>Check-Out Time</th>  <!-- moved here -->
-                <th>Check-Out Method</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-       <tbody>
-    @forelse ($checkins as $checkin)
-        <tr>
-            <td>{{ $checkin->employee ? ($checkin->employee->fname . ' ' . $checkin->employee->lname) : 'Unknown' }}</td>
-            <td>
-                <span class="checkin-time" 
-                      data-date="{{ $checkin->date }}" 
-                      data-time="{{ $checkin->check_in_time }}">
-                    {{ $checkin->date }} {{ $checkin->check_in_time }}
-                </span>
-            </td>
-            <td>
-                @if ($checkin->check_out_time)
-                    <span class="checkout-time" 
-                          data-date="{{ $checkin->date }}" 
-                          data-time="{{ $checkin->check_out_time }}">
-                        {{ $checkin->date }} {{ $checkin->check_out_time }}
-                    </span>
-                @else
-                    Not checked out
-                @endif
-            </td>
-            <td>{{ ucfirst(str_replace('_', ' ', $checkin->check_in_method)) }}</td>
-            <td>{{ $checkin->check_out_method ? ucfirst(str_replace('_', ' ', $checkin->check_out_method)) : '-' }}</td>
-            <td>
-                @if (!$checkin->check_out_time)
-                    <button class="btn btn-sm btn-success checkout-attendance"
-                            data-employee-id="{{ $checkin->employee_id }}"
-                            onclick="this.disabled=true; setTimeout(() => this.disabled=false, 1500)">Check Out</button>
-                @endif
-                @if ($checkin->check_out_time)
-                    <button class="btn btn-sm btn-danger delete-attendance"
-                            hx-delete="{{ route('attendance.destroy', $checkin->attendance_id) }}"
-                            hx-target="#attendance-checkout-section"
-                            hx-swap="innerHTML"
-                            hx-confirm="Are you sure you want to clear this check-out?"
-                            hx-headers='{"X-CSRF-TOKEN": "{{ csrf_token() }}"}'
-                            data-attendance-id="{{ $checkin->attendance_id }}"
-                            onclick="this.disabled=true; setTimeout(() => this.disabled=false, 1000)">Remove Check Out</button>
-                @endif
-            </td>
-        </tr>
-    @empty
-        <tr>
-            <td colspan="6">No check-ins today</td>
-        </tr>
-    @endforelse
-</tbody>
-    </table>
-</div>
-
+                    <table class="table table-bordered" id="checkinsTable">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Check-In Time</th>
+                                <th>Late Status</th>
+                                <th>Check-In Method</th>
+                                <th>Check-Out Time</th>
+                                <th>Check-Out Method</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($checkins as $checkin)
+                                <tr>
+                                    <td>{{ $checkin->employee ? ($checkin->employee->fname . ' ' . $checkin->employee->lname) : 'Unknown' }}</td>
+                                    <td>
+                                        <span class="checkin-time" 
+                                              data-date="{{ $checkin->date }}" 
+                                              data-time="{{ $checkin->check_in_time }}">
+                                            {{ $checkin->date }} {{ $checkin->check_in_time }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                    @if ($checkin->late_status)
+                                        <span class="badge bg-danger">Late</span>
+                                    @else
+                                        <span class="badge bg-info">On Time</span>
+                                    @endif
+                                </td>
+                                    <td>{{ ucfirst(str_replace('_', ' ', $checkin->check_in_method)) }}</td>
+                                    <td>
+                                        @if ($checkin->check_out_time)
+                                            <span class="checkout-time" 
+                                                  data-date="{{ $checkin->date }}" 
+                                                  data-time="{{ $checkin->check_out_time }}">
+                                                {{ $checkin->date }} {{ $checkin->check_out_time }}
+                                            </span>
+                                        @else
+                                            Not checked out
+                                        @endif
+                                    </td>
+                                    <td>{{ $checkin->check_out_method ? ucfirst(str_replace('_', ' ', $checkin->check_out_method)) : '-' }}</td>
+                                    <td>
+                                        @if (!$checkin->check_out_time)
+                                            <button class="btn btn-sm btn-success checkout-attendance"
+                                                    data-employee-id="{{ $checkin->employee_id }}"
+                                                    onclick="this.disabled=true; setTimeout(() => this.disabled=false, 1500)">Check Out</button>
+                                        @endif
+                                        @if ($checkin->check_out_time)
+                                            <button class="btn btn-sm btn-danger delete-attendance"
+                                                    hx-delete="{{ route('attendance.destroy', $checkin->attendance_id) }}"
+                                                    hx-target="#attendance-checkout-section"
+                                                    hx-swap="innerHTML"
+                                                    hx-confirm="Are you sure you want to clear this check-out?"
+                                                    hx-headers='{"X-CSRF-TOKEN": "{{ csrf_token() }}"}'
+                                                    data-attendance-id="{{ $checkin->attendance_id }}"
+                                                    onclick="this.disabled=true; setTimeout(() => this.disabled=false, 1000)">Remove Check Out</button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7">No check-ins today</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -322,105 +329,105 @@ if (typeof jsQR === 'undefined') {
 
     // Initialize Upload Event Listeners
     function initUploadListeners() {
-    const qrUpload = document.getElementById('qrUpload');
-    const submitUploadBtn = document.getElementById('submitUploadCheckout');
-    const uploadPreview = document.getElementById('uploadPreview');
+        const qrUpload = document.getElementById('qrUpload');
+        const submitUploadBtn = document.getElementById('submitUploadCheckout');
+        const uploadPreview = document.getElementById('uploadPreview');
 
-    if (!qrUpload || !submitUploadBtn || !uploadPreview) {
-        console.warn('Upload elements not found, skipping initialization');
-        return;
-    }
-
-    if (qrUpload._uploadHandler) {
-        qrUpload.removeEventListener('change', qrUpload._uploadHandler);
-    }
-    if (submitUploadBtn._submitHandler) {
-        submitUploadBtn.removeEventListener('click', submitUploadBtn._submitHandler);
-    }
-
-    qrUpload._uploadHandler = function(e) {
-        console.log('Upload input changed, processing file');
-        const file = e.target.files[0];
-        if (!file) {
-            showError('No file selected');
-            submitUploadBtn.disabled = true;
-            qrCode = null;
+        if (!qrUpload || !submitUploadBtn || !uploadPreview) {
+            console.warn('Upload elements not found, skipping initialization');
             return;
         }
 
-        if (typeof jsQR === 'undefined') {
-            console.error('jsQR not available');
-            showError('QR code scanning library not loaded. Please refresh the page.');
-            submitUploadBtn.disabled = true;
-            qrCode = null;
-            return;
+        if (qrUpload._uploadHandler) {
+            qrUpload.removeEventListener('change', qrUpload._uploadHandler);
+        }
+        if (submitUploadBtn._submitHandler) {
+            submitUploadBtn.removeEventListener('click', submitUploadBtn._submitHandler);
         }
 
-        try {
-            console.log('Processing uploaded file:', file.name, 'Size:', file.size, 'Type:', file.type);
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                uploadPreview.innerHTML = `<img src="${event.target.result}" style="max-width: 100%; max-height: 200px;">`;
-            };
-            reader.readAsDataURL(file);
-
-            const image = new Image();
-            image.src = URL.createObjectURL(file);
-            
-            image.onload = () => {
-                console.log('Image loaded, dimensions:', image.width, 'x', image.height);
-                const canvas = document.createElement('canvas');
-                canvas.width = image.width;
-                canvas.height = image.height;
-                const context = canvas.getContext('2d');
-                context.drawImage(image, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                console.log('Image data retrieved, size:', imageData.width, 'x', imageData.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                    inversionAttempts: 'dontInvert',
-                });
-                
-                if (code) {
-                    qrCode = code.data;
-                    console.log('QR code detected:', qrCode);
-                    submitUploadBtn.disabled = false;
-                } else {
-                    console.warn('No QR code found in the image');
-                    showError('No QR code found in the image');
-                    submitUploadBtn.disabled = true;
-                    qrCode = null;
-                }
-            };
-            image.onerror = (err) => {
-                console.error('Image load error:', err);
-                showError('Failed to load image');
+        qrUpload._uploadHandler = function(e) {
+            console.log('Upload input changed, processing file');
+            const file = e.target.files[0];
+            if (!file) {
+                showError('No file selected');
                 submitUploadBtn.disabled = true;
                 qrCode = null;
-            };
-        } catch (err) {
-            console.error('Error processing image:', err);
-            showError('Error processing image: ' + err.message);
-            submitUploadBtn.disabled = true;
-            qrCode = null;
-        }
-    };
+                return;
+            }
 
-    submitUploadBtn._submitHandler = function() {
-        if (qrCode && !isSubmitting) {
-            console.log('Submitting QR code:', qrCode);
-            debouncedSubmitCheckout(qrCode, 'qr_upload');
-        } else {
-            showError(isSubmitting ? 'Please wait, submission in progress' : 'No QR code detected');
-        }
-    };
+            if (typeof jsQR === 'undefined') {
+                console.error('jsQR not available');
+                showError('QR code scanning library not loaded. Please refresh the page.');
+                submitUploadBtn.disabled = true;
+                qrCode = null;
+                return;
+            }
 
-    qrUpload.addEventListener('change', qrUpload._uploadHandler);
-    submitUploadBtn.addEventListener('click', submitUploadBtn._submitHandler);
+            try {
+                console.log('Processing uploaded file:', file.name, 'Size:', file.size, 'Type:', file.type);
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    uploadPreview.innerHTML = `<img src="${event.target.result}" style="max-width: 100%; max-height: 200px;">`;
+                };
+                reader.readAsDataURL(file);
 
-    submitUploadBtn.disabled = true;
-    qrCode = null;
-}
+                const image = new Image();
+                image.src = URL.createObjectURL(file);
+                
+                image.onload = () => {
+                    console.log('Image loaded, dimensions:', image.width, 'x', image.height);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    const context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    console.log('Image data retrieved, size:', imageData.width, 'x', imageData.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: 'dontInvert',
+                    });
+                    
+                    if (code) {
+                        qrCode = code.data;
+                        console.log('QR code detected:', qrCode);
+                        submitUploadBtn.disabled = false;
+                    } else {
+                        console.warn('No QR code found in the image');
+                        showError('No QR code found in the image');
+                        submitUploadBtn.disabled = true;
+                        qrCode = null;
+                    }
+                };
+                image.onerror = (err) => {
+                    console.error('Image load error:', err);
+                    showError('Failed to load image');
+                    submitUploadBtn.disabled = true;
+                    qrCode = null;
+                };
+            } catch (err) {
+                console.error('Error processing image:', err);
+                showError('Error processing image: ' + err.message);
+                submitUploadBtn.disabled = true;
+                qrCode = null;
+            }
+        };
+
+        submitUploadBtn._submitHandler = function() {
+            if (qrCode && !isSubmitting) {
+                console.log('Submitting QR code:', qrCode);
+                debouncedSubmitCheckout(qrCode, 'qr_upload');
+            } else {
+                showError(isSubmitting ? 'Please wait, submission in progress' : 'No QR code detected');
+            }
+        };
+
+        qrUpload.addEventListener('change', qrUpload._uploadHandler);
+        submitUploadBtn.addEventListener('click', submitUploadBtn._submitHandler);
+
+        submitUploadBtn.disabled = true;
+        qrCode = null;
+    }
 
     // Camera Functionality
     startCameraBtn.addEventListener('click', async () => {
@@ -492,36 +499,34 @@ if (typeof jsQR === 'undefined') {
     });
 
     // Check-Out Button Functionality
-function handleCheckoutButton(e) {
-    if (e.target && e.target.classList.contains('checkout-attendance') && !isSubmitting) {
-        const employeeId = e.target.getAttribute('data-employee-id');
-        if (!employeeId) {
-            showError('Employee ID not found.');
-            return;
-        }
+    function handleCheckoutButton(e) {
+        if (e.target && e.target.classList.contains('checkout-attendance') && !isSubmitting) {
+            const employeeId = e.target.getAttribute('data-employee-id');
+            if (!employeeId) {
+                showError('Employee ID not found.');
+                return;
+            }
 
-        // Client-side check: Presence of Check-Out button means employee has checked in and not checked out
-        const checkoutButton = document.querySelector(`.checkout-attendance[data-employee-id="${employeeId}"]`);
-        if (!checkoutButton) {
-            showError('This employee has already checked out or has not checked in (client-side check).');
-            return;
-        }
+            const checkoutButton = document.querySelector(`.checkout-attendance[data-employee-id="${employeeId}"]`);
+            if (!checkoutButton) {
+                showError('This employee has already checked out or has not checked in (client-side check).');
+                return;
+            }
 
-        // Server-side check
-        checkServerStatus(employeeId)
-            .then(hasCheckin => {
-                if (!hasCheckin) {
-                    showError('This employee has not checked in today (server-side check).');
-                    return;
-                }
-                console.log('Proceeding with check-out for employee:', employeeId);
-                debouncedSubmitCheckout(employeeId, 'manual');
-            })
-            .catch(() => {
-                // Error already shown in checkServerStatus
-            });
+            checkServerStatus(employeeId)
+                .then(hasCheckin => {
+                    if (!hasCheckin) {
+                        showError('This employee has not checked in today (server-side check).');
+                        return;
+                    }
+                    console.log('Proceeding with check-out for employee:', employeeId);
+                    debouncedSubmitCheckout(employeeId, 'manual');
+                })
+                .catch(() => {
+                    // Error already shown in checkServerStatus
+                });
+        }
     }
-}
     document.removeEventListener('click', handleCheckoutButton);
     document.addEventListener('click', handleCheckoutButton);
 

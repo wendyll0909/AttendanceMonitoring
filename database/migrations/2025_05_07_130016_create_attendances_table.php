@@ -19,6 +19,8 @@ return new class extends Migration
             $table->time('check_out_time')->nullable();
             $table->string('check_in_method')->nullable(); // 'qr_camera', 'qr_upload', 'manual'
             $table->string('check_out_method')->nullable(); // 'qr_camera', 'qr_upload', 'manual'
+            $table->time('check_in_deadline')->nullable(); // Store the check-in deadline time
+            $table->boolean('late_status')->default(false); // Store if the check-in was late
             $table->timestamps();
             $table->foreign('employee_id')->references('employee_id')->on('employees')->onDelete('cascade');
         });

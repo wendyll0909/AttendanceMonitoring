@@ -29,6 +29,7 @@ Route::prefix('dashboard')->group(function () {
     // Attendance routes
     Route::get('attendance/checkin', [AttendanceController::class, 'checkin'])->name('attendance.checkin');
     Route::post('attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
+    Route::post('attendance/deadline', [AttendanceController::class, 'updateDeadline'])->name('attendance.deadline.update');
     Route::delete('attendance/{id}', [AttendanceController::class, 'destroy'])->name('attendance.destroy');
     Route::get('attendance/check/{employeeId}', [AttendanceController::class, 'check'])->name('attendance.check');
     Route::get('attendance/checkout', [AttendanceController::class, 'checkout'])->name('attendance.checkout');
@@ -67,7 +68,6 @@ Route::get('/qr_codes/{code}.png', [EmployeeController::class, 'serveQrCode'])->
 
 Route::get('/test-qr', function() {
     try {
-        // Create QR code
         $qrCode = new QrCode('TEST');
         $qrCode->setEncoding(new Encoding('UTF-8'));
         $qrCode->setSize(300);
@@ -78,7 +78,6 @@ Route::get('/test-qr', function() {
         $writer = new PngWriter();
         $result = $writer->write($qrCode);
         
-        // Save to file
         $filePath = public_path('qr_codes/test.png');
         $result->saveToFile($filePath);
         
@@ -91,4 +90,3 @@ Route::get('/test-qr', function() {
         ], 500);
     }
 });
-?>
