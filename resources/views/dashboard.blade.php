@@ -69,9 +69,16 @@
     </ul>
 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link" hx-get="{{ route('requests.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
-                        <i class="bi bi-list-check"></i> Requests
-                    </a>
+                    <a href="#" class="nav-link" 
+   hx-get="{{ route('requests.index') }}" 
+   hx-target="#content-area" 
+   hx-swap="innerHTML" 
+   hx-push-url="false" 
+   data-persist-sidebar
+   hx-headers='{"Accept": "text/html", "X-CSRF-TOKEN": "{{ csrf_token() }}"}'
+   hx-ext="disable-json">
+    <i class="bi bi-list-check"></i> Requests
+</a>
                 </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" hx-get="{{ url('/dashboard/payroll') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>

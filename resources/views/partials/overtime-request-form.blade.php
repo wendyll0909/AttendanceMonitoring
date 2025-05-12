@@ -1,40 +1,84 @@
-<form id="overtimeRequestForm" hx-post="{{ route('overtime-requests.store') }}" hx-target="#requests-container" hx-swap="innerHTML" onsubmit="return validateOvertimeForm(this)">    @csrf
-    <div class="mb-3">
-        <label for="overtime_employee_id" class="form-label">Employee</label>
-        @if($employees->isEmpty())
-            <p class="text-danger">No employees available. Please add employees first.</p>
-            <input type="hidden" name="employee_id" value="" disabled>
-        @else
-            <select class="form-control" id="overtime_employee_id" name="employee_id" required>
-                @foreach($employees as $employee)
-                    <option value="{{ $employee->employee_id }}">{{ $employee->full_name }}</option>
-                @endforeach
-            </select>
-        @endif
-    </div>
-    <div class="mb-3">
-    <label for="overtime_start_time" class="form-label">Start Time</label>
-    <input type="datetime-local" class="form-control" id="overtime_start_time" name="start_time" required>
-</div>
-<div class="mb-3">
-    <label for="overtime_end_time" class="form-label">End Time</label>
-    <input type="datetime-local" class="form-control" id="overtime_end_time" name="end_time" required>
-</div>
-    <div class="mb-3">
-        <label for="overtime_reason" class="form-label">Reason</label>
-        <textarea class="form-control" id="overtime_reason" name="reason" required></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary" @if($employees->isEmpty()) disabled @endif>Submit</button>
-</form>
-<script>
-function validateOvertimeForm(form) {
-    const startTime = new Date(form.start_time.value);
-    const endTime = new Date(form.end_time.value);
+<form id="overtimeRequestForm" 
+      hx-post="{{ route('overtime-requests.store') }}"
+      hx-target="#requests-container"  
+      hx-swap="innerHTML"
+      hx-headers='{"X-CSRF-TOKEN": "{{ csrf_token() }}"}'
+      class="needs-validation"
+      novalidate>
+       @if(isset($error))
+           <div class="alert alert-danger alert-dismissible fade show" role="alert">
+               {{ $error }}
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+           </div>
+       @endif
+
+       <div class="mb-3">
+           <label for="employee_id" class="form-label">Employee</label>
+           <select name="employee_id" id="employee_id" class="form-control" required>
+               <option value="">Select Employee</option>
+               @foreach($employees as $employee)
+                   <option value="{{ $employee->employee_id }}">{{ e($employee->full_name) }}</option>
+               @endforeach
+           </select>
+           <div class="invalid-feedback">Please select an employee.</div>
+       </div>
+
+       <div class="mb-3">
+           <label for="start_time" class="form-label">Start Time</label>
+           <input type="datetime-local" name="start_time" id="start_time" class="form-control" required>
+           <div class="invalid-feedback">Please select a valid start time in the future.</div>
+       </div>
+
+       <div class="mb-3">
+           <label for="end_time" class="form-label">End Time</label>
+           <input type="datetime-local" name="end_time" id="end_time" class="form-control" required>
+           <div class="invalid-feedback">Please select a valid end time after start time.</div>
+       </div>
+
+       <div class="mb-3">
+           <label for="reason" class="form-label">Reason</label>
+           <textarea name="reason" id="reason" class="form-control" rows="4" maxlength="255" required></textarea>
+           <div class="invalid-feedback">Please provide a reason (max 255 characters).</div>
+       </div>
+
+       <div class="modal-footer">
+           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+           <button type="submit" class="btn btn-primary">Submit</button>
+       </div>
+   </form>
+
+   <script>
+   (function() {
+       const form = document.getElementById('overtimeRequestForm');
+form.addEventListener('submit', function(event) {
+    const startTime = new Date(document.getElementById('start_time').value);
+    const now = new Date();
     
-    if (endTime <= startTime) {
-        alert('End time must be after start time');
+    if (startTime <= now) {
+        event.preventDefault();
+        event.stopPropagation();
+        alert('Start time must be in the future');
         return false;
     }
-    return true;
-}
-</script>
+    
+    if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    form.classList.add('was-validated');
+}, false);
+
+       const now = new Date();
+       const startTimeInput = document.getElementById('start_time');
+       const endTimeInput = document.getElementById('end_time');
+       if (startTimeInput && endTimeInput) {
+           const minTime = new Date(now.getTime() + 5 * 60 * 1000).toISOString().slice(0, 16);
+           startTimeInput.min = minTime;
+           endTimeInput.min = minTime;
+
+           startTimeInput.addEventListener('change', function() {
+               endTimeInput.min = startTimeInput.value;
+           });
+       }
+   })();
+   </script>

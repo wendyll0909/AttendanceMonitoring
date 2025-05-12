@@ -305,17 +305,34 @@ function downloadQR(qrCode) {
         }
     }
 }
-// In app.js
 document.addEventListener('htmx:responseError', function(evt) {
-    console.error('HTMX Error:', evt.detail);
+    console.error('HTMX Response Error:', evt.detail);
+    console.log('Raw Response:', evt.detail.xhr.responseText);
+    console.log('Response Headers:', evt.detail.xhr.getAllResponseHeaders());
+    console.log('Target Element:', evt.detail.target);
+
     const target = evt.detail.target || document.getElementById('content-area');
-    if (target) {
-        target.innerHTML = `
-            <div class="alert alert-danger">
-                Request failed: ${evt.detail.xhr.statusText}
-                ${evt.detail.xhr.responseText ? `<small>${evt.detail.xhr.responseText.substring(0, 200)}</small>` : ''}
-            </div>
-            ${target.innerHTML}
-        `;
+    if (!target) return;
+
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger';
+    errorDiv.textContent = `Request failed: ${evt.detail.xhr.statusText} (Status: ${evt.detail.xhr.status})`;
+    target.prepend(errorDiv);
+});
+document.addEventListener('htmx:afterRequest', function(evt) {
+    // Handle successful form submissions
+    if (evt.detail.target.id === 'overtimeRequestForm' && evt.detail.successful) {
+        const modalEl = document.getElementById('overtimeRequestModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+        
+        // HTMX will automatically handle the redirect response
     }
+});
+document.addEventListener('htmx:configRequest', function(evt) {
+    // Force HTML responses
+    evt.detail.headers['Accept'] = 'text/html';
+    evt.detail.headers['X-Requested-With'] = 'XMLHttpRequest';
 });

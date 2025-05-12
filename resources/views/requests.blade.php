@@ -1,7 +1,55 @@
+@php
+    $search = request()->query('search', '');
+    $status = request()->query('status', '');
+@endphp
+
 <div id="requests-container">
-    <h2>Requests Management</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>Requests Management</h2>
+        <div id="datetime-clock" class="text-muted" style="font-size: 1.1rem; font-weight: 500;"></div>
+    </div>
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error') || isset($error))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') ?? $error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <form id="requests-search-form"
+      hx-get="{{ route('requests.index') }}"
+      hx-target="#requests-container"
+      hx-swap="innerHTML"
+      hx-push-url="false"
+      hx-headers='{"X-CSRF-TOKEN": "{{ csrf_token() }}", "Accept": "text/html"}'
+      class="mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search by Employee Name</label>
+                <input type="text" name="search" id="search" class="form-control" placeholder="Enter employee name..." value="{{ $search }}">
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Filter by Status</label>
+                <select name="status" id="status" class="form-control">
+                    <option value="" {{ $status == '' ? 'selected' : '' }}>All</option>
+                    <option value="pending" {{ $status == 'pending' ? 'selected' : '' }}>Pending</option>
+                    <option value="approved" {{ $status == 'approved' ? 'selected' : '' }}>Approved</option>
+                    <option value="rejected" {{ $status == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </form>
+
     <div class="requests-container">
-        <!-- Leave Requests Section -->
         <div class="request-wrapper">
             <div class="d-flex justify-content-between align-items-center my-3">
                 <h3>Leave Requests</h3>
@@ -17,14 +65,18 @@
                     Create Leave Request
                 </button>
             </div>
-            @if($leaveRequests->isEmpty())
-                <p>No leave requests found.</p>
-            @else
+            @if(isset($leaveRequests) && $leaveRequests->isNotEmpty())
                 @include('partials.leave-requests', ['leaveRequests' => $leaveRequests])
+            @else
+                <p>No leave requests found.</p>
             @endif
+            <div class="d-flex justify-content-center mt-3">
+                @if($leaveRequests instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                    {{ $leaveRequests->appends(['search' => $search, 'status' => $status])->links() }}
+                @endif
+            </div>
         </div>
 
-        <!-- Overtime Requests Section -->
         <div class="request-wrapper">
             <div class="d-flex justify-content-between align-items-center my-3">
                 <h3>Overtime Requests</h3>
@@ -40,15 +92,19 @@
                     Create Overtime Request
                 </button>
             </div>
-            @if($overtimeRequests->isEmpty())
-                <p>No overtime requests found.</p>
-            @else
+            @if(isset($overtimeRequests) && $overtimeRequests->isNotEmpty())
                 @include('partials.overtime-requests', ['overtimeRequests' => $overtimeRequests])
+            @else
+                <p>No overtime requests found.</p>
             @endif
+            <div class="d-flex justify-content-center mt-3">
+                @if($overtimeRequests instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                    {{ $overtimeRequests->appends(['search' => $search, 'status' => $status])->links() }}
+                @endif
+            </div>
         </div>
     </div>
 
-    <!-- Leave Request Modal -->
     <div class="modal fade" id="leaveRequestModal" tabindex="-1" aria-labelledby="leaveRequestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -63,7 +119,6 @@
         </div>
     </div>
 
-    <!-- Overtime Request Modal -->
     <div class="modal fade" id="overtimeRequestModal" tabindex="-1" aria-labelledby="overtimeRequestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -80,6 +135,15 @@
 </div>
 
 <style>
+#datetime-clock {
+    background-color: #e9ecef;
+    padding: 8px 12px;
+    border-radius: 5px;
+    color: #333333;
+    font-family: 'Poppins', sans-serif;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 .requests-container {
     display: flex;
     gap: 20px;
@@ -88,7 +152,7 @@
 
 .request-wrapper {
     flex: 1;
-    min-width: 300px; /* Minimum width to prevent sections from becoming too narrow */
+    min-width: 300px;
 }
 
 .htmx-indicator {
@@ -107,148 +171,80 @@
 @push('scripts')
 <script>
 (function() {
-    if (window.requestsScriptInitialized) {
-        console.log('requests.blade.php script already initialized, skipping');
-        return;
-    }
-    window.requestsScriptInitialized = true;
-
-    console.log('Initializing requests script - HTMX:', typeof htmx, 'Bootstrap:', typeof bootstrap);
-
-    function initializeRequests() {
-        if (typeof htmx === 'undefined' || typeof bootstrap === 'undefined') {
-            console.warn('HTMX or Bootstrap not loaded, retrying in 100ms');
-            setTimeout(initializeRequests, 100);
-            return;
-        }
-
-        const requestsContainer = document.getElementById('requests-container');
-        if (!requestsContainer) {
-            console.warn('requests-container not found');
-            return;
-        }
-
-        try {
-            htmx.process(requestsContainer);
-            console.log('HTMX processed requests-container');
-        } catch (error) {
-            console.error('Error processing HTMX for requests-container:', error);
+    function updateClock() {
+        const now = new Date();
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+        };
+        const formattedDateTime = now.toLocaleString('en-US', options);
+        const clockElement = document.getElementById('datetime-clock');
+        if (clockElement) {
+            clockElement.textContent = formattedDateTime;
         }
     }
+    updateClock();
+    setInterval(updateClock, 1000);
 
-    document.addEventListener('htmx:beforeRequest', function(evt) {
-        console.log('HTMX request started:', {
-            url: evt.detail.elt?.getAttribute('hx-get') || evt.detail.elt?.getAttribute('hx-post'),
-            target: evt.detail.target?.id
-        });
-    });
+    document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'requests-container') {
+        console.log('HTMX swap completed for requests-container');
+        // Ensure HTMX processes new content
+        htmx.process(evt.detail.target);
+        // Reinitialize clock
+        updateClock();
+    }
+});
 
     document.addEventListener('htmx:afterRequest', function(evt) {
-        const requestUrl = evt.detail.elt?.getAttribute('hx-get') || evt.detail.elt?.getAttribute('hx-post');
-        const modalBody = evt.detail.elt.closest('.modal')?.querySelector('.modal-body');
-        const target = modalBody || evt.detail.target || document.getElementById('requests-container');
-
-        if (!evt.detail.successful) {
-            console.error('HTMX request failed:', {
-                url: requestUrl,
-                status: evt.detail.xhr?.status,
-                response: evt.detail.xhr?.responseText?.substring(0, 500),
-                error: evt.detail.error
-            });
-
-            let errorMessage = 'An error occurred while processing your request.';
-            let errorsHtml = '';
-
-            try {
-                const response = JSON.parse(evt.detail.xhr.responseText);
-                errorMessage = response.message || errorMessage;
-                if (response.errors) {
-                    errorsHtml = Object.values(response.errors).flat().join('<br>');
-                    // Highlight problematic fields in modals
-                    if (modalBody && requestUrl?.includes('overtime-requests')) {
-                        Object.keys(response.errors).forEach(field => {
-                            const input = modalBody.querySelector(`[name="${field}"]`);
-                            if (input) {
-                                input.classList.add('is-invalid');
-                                const errorDiv = document.createElement('div');
-                                errorDiv.className = 'invalid-feedback';
-                                errorDiv.textContent = response.errors[field][0];
-                                input.parentNode.appendChild(errorDiv);
-                            }
-                        });
-                    }
-                }
-            } catch (e) {
-                // Fallback: Extract error from HTML or use default message
-                const match = evt.detail.xhr?.responseText?.match(/<div[^>]*class="alert alert-danger"[^>]*>([^<]*)<\/div>/);
-                if (match) {
-                    errorMessage = match[1];
-                }
-                console.error('Error parsing error response:', e);
+        const formIds = ['leaveRequestForm', 'overtimeRequestForm'];
+        if (evt.detail.target && formIds.includes(evt.detail.target.id) && evt.detail.successful) {
+            const modalIds = {
+                'leaveRequestForm': 'leaveRequestModal',
+                'overtimeRequestForm': 'overtimeRequestModal'
+            };
+            const modalEl = document.getElementById(modalIds[evt.detail.target.id]);
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
             }
-
-            if (target) {
-                target.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${errorMessage}
-                        ${errorsHtml ? '<br>' + errorsHtml : ''}
-                    </div>
-                    ${target.innerHTML}
-                `;
-            }
-            return;
-        }
-
-        console.log('HTMX request succeeded:', { 
-            url: requestUrl,
-            response: evt.detail.xhr?.responseText?.substring(0, 500)
-        });
-
-        if (evt.detail.xhr?.responseText?.includes('<!DOCTYPE html>')) {
-            console.error('Response contains full HTML document, which may cause parsing issues');
-        }
-
-        if (requestUrl?.includes('leave-requests/create')) {
-            console.log('Leave request form loaded successfully');
-            const modal = new bootstrap.Modal(document.getElementById('leaveRequestModal'), { backdrop: 'static' });
-            modal.show();
-        } else if (requestUrl?.includes('overtime-requests/create')) {
-            console.log('Overtime request form loaded successfully');
-            const modal = new bootstrap.Modal(document.getElementById('overtimeRequestModal'), { backdrop: 'static' });
-            modal.show();
         }
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Leave request form validation
-        document.getElementById('leaveRequestForm')?.addEventListener('submit', function(e) {
-            const startDate = new Date(this.elements.start_date.value);
-            const endDate = new Date(this.elements.end_date.value);
-            
-            if (endDate < startDate) {
-                e.preventDefault();
-                alert('End date must be after or equal to start date');
-                return false;
+    document.addEventListener('htmx:responseError', function(evt) {
+        console.error('HTMX response error', evt.detail);
+        const modalBody = document.querySelector('#overtimeRequestModal .modal-body') || document.querySelector('#leaveRequestModal .modal-body');
+        if (evt.detail.xhr.status === 422 && modalBody) {
+            modalBody.innerHTML = evt.detail.xhr.responseText;
+            htmx.process(modalBody);
+        } else {
+            const errorContainer = document.getElementById('error-message') || document.createElement('div');
+            errorContainer.className = 'alert alert-danger alert-dismissible fade show';
+            errorContainer.innerHTML = `
+                Request failed: ${evt.detail.xhr.statusText}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            const container = document.getElementById('requests-container');
+            if (container) {
+                container.prepend(errorContainer);
             }
-            return true;
-        });
-
-        // Overtime request form validation
-        document.getElementById('overtimeRequestForm')?.addEventListener('submit', function(e) {
-            const startTime = new Date(this.elements.start_time.value);
-            const endTime = new Date(this.elements.end_time.value);
-            
-            if (endTime <= startTime) {
-                e.preventDefault();
-                alert('End time must be after start time');
-                return false;
-            }
-            return true;
-        });
-
-        console.log('DOMContentLoaded: Initializing requests');
-        initializeRequests();
-    }, { once: true });
+        }
+    });
 })();
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof htmx !== 'undefined') {
+        htmx.process(document.body);
+    }
+    document.querySelectorAll('form[data-htmx]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+        });
+    });
+});
 </script>
 @endpush
