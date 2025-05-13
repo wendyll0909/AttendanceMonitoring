@@ -100,7 +100,7 @@ console.log('Initial script running: Confirming JavaScript execution');
                                     </td>
                                     <td>
                                     @if ($checkin->late_status)
-                                        <span class="badge bg-danger">Late</span>
+                                        <span class="badge bg-warning text-dark">Late</span>
                                     @else
                                         <span class="badge bg-info">On Time</span>
                                     @endif

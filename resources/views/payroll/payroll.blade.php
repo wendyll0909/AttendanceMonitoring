@@ -36,29 +36,33 @@
     </form>
 
     <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Days Worked</th>
+                <th>Base Salary</th>
+                <th>Overtime Pay</th>
+                <th>Total Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($payrollData as $data)
                 <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Days Worked</th>
-                    <th>Total Salary</th>
+                    <td>{{ $data['employee']->full_name }}</td>
+                    <td>{{ $data['employee']->position->position_name ?? 'N/A' }}</td>
+                    <td>{{ $data['days_worked'] }}</td>
+                    <td>₱{{ number_format($data['salary'], 2) }}</td>
+                    <td>₱{{ number_format($data['overtime_pay'], 2) }}</td>
+                    <td>₱{{ number_format($data['total_pay'], 2) }}</td>
                 </tr>
-            </thead>
-            <tbody>
-                @forelse ($payrollData as $data)
-                    <tr>
-                        <td>{{ $data['employee']->full_name }}</td>
-                        <td>{{ $data['employee']->position->position_name ?? 'N/A' }}</td>
-                        <td>{{ $data['days_worked'] }}</td>
-                        <td>₱{{ number_format($data['salary'], 2) }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4">No payroll data found for this month</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+            @empty
+                <tr>
+                    <td colspan="6">No payroll data found for this month</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
 </div>

@@ -28,4 +28,8 @@ class Employee extends Model
 {
     return $query->where('status', 'active');
 }
+public function overtimeRequests()
+    {
+        return $this->hasMany(OvertimeRequest::class, 'employee_id', 'employee_id');
+    }
 }

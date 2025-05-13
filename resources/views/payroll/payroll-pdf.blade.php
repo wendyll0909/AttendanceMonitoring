@@ -44,24 +44,28 @@
 
     <h2>Employee Payroll</h2>
     <table>
-        <thead>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Days Worked</th>
+            <th>Base Salary</th>
+            <th>Overtime Pay</th>
+            <th>Total Pay</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach ($payrollData as $data)
             <tr>
-                <th>Name</th>
-                <th>Position</th>
-                <th>Days Worked</th>
-                <th>Total Salary</th>
+                <td>{{ $data['employee']->full_name }}</td>
+                <td>{{ $data['employee']->position->position_name ?? 'N/A' }}</td>
+                <td>{{ $data['days_worked'] }}</td>
+                <td>P{{ number_format($data['salary'], 2) }}</td>
+                <td>P{{ number_format($data['overtime_pay'], 2) }}</td>
+                <td>P{{ number_format($data['total_pay'], 2) }}</td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach ($payrollData as $data)
-                <tr>
-                    <td>{{ $data['employee']->full_name }}</td>
-                    <td>{{ $data['employee']->position->position_name ?? 'N/A' }}</td>
-                    <td>{{ $data['days_worked'] }}</td>
-                    <td>P{{ number_format($data['salary'], 2) }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+        @endforeach
+    </tbody>
+</table>
 </body>
 </html>

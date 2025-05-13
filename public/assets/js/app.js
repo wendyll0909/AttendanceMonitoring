@@ -26,58 +26,86 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!contentArea) console.warn('Content area element not found');
 
     function toggleSidebar() {
-        isSidebarToggled = !isSidebarToggled;
-        console.log('Sidebar toggled, states:', { isSidebarToggled, isHamburgerHovered, isSidebarHovered, isNavigating });
-        if (sidebar) {
-            sidebar.classList.toggle('visible', isSidebarToggled);
-        }
+    isSidebarToggled = !isSidebarToggled;
+    console.log('Sidebar toggled, states:', { isSidebarToggled, isHamburgerHovered, isSidebarHovered, isNavigating });
+    if (sidebar) {
+        sidebar.classList.toggle('visible', isSidebarToggled);
     }
+    // Add this to hide hamburger menu when sidebar is visible
+    if (hamburgerMenu) {
+        hamburgerMenu.style.opacity = isSidebarToggled ? '0' : '1';
+        hamburgerMenu.style.pointerEvents = isSidebarToggled ? 'none' : 'auto';
+    }
+}
 
     if (hamburgerMenu) {
         hamburgerMenu.addEventListener('click', toggleSidebar);
     }
 
     function debouncedToggleSidebar() {
-        clearTimeout(dropdownTimeout);
-        dropdownTimeout = setTimeout(() => {
-            if (!isSidebarToggled && !isSidebarHovered && !isHamburgerHovered && !isNavigating && sidebar) {
-                sidebar.classList.remove('visible');
-                console.log('Sidebar hidden due to no hover, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+    clearTimeout(dropdownTimeout);
+    dropdownTimeout = setTimeout(() => {
+        if (!isSidebarToggled && !isSidebarHovered && !isHamburgerHovered && !isNavigating && sidebar) {
+            sidebar.classList.remove('visible');
+            console.log('Sidebar hidden due to no hover, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+            // Show hamburger menu when sidebar is hidden
+            if (hamburgerMenu) {
+                hamburgerMenu.style.opacity = '1';
+                hamburgerMenu.style.pointerEvents = 'auto';
             }
-        }, 200);
-    }
+        }
+    }, 200);
+}
 
     if (sidebar) {
-        sidebar.addEventListener('mouseenter', () => {
-            isSidebarHovered = true;
-            console.log('Sidebar mouseenter, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
-            if (!isSidebarToggled && !isNavigating) {
-                sidebar.classList.add('visible');
+    sidebar.addEventListener('mouseenter', () => {
+        isSidebarHovered = true;
+        console.log('Sidebar mouseenter, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+        if (!isSidebarToggled && !isNavigating) {
+            sidebar.classList.add('visible');
+            // Hide hamburger menu when sidebar is shown via hover
+            if (hamburgerMenu) {
+                hamburgerMenu.style.opacity = '0';
+                hamburgerMenu.style.pointerEvents = 'none';
             }
-        });
+        }
+    });
 
-        sidebar.addEventListener('mouseleave', () => {
-            isSidebarHovered = false;
-            console.log('Sidebar mouseleave, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
-            debouncedToggleSidebar();
-        });
-    }
+    sidebar.addEventListener('mouseleave', () => {
+        isSidebarHovered = false;
+        console.log('Sidebar mouseleave, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+        debouncedToggleSidebar();
+        // Show hamburger menu when sidebar is hidden
+        if (!isSidebarToggled && hamburgerMenu) {
+            hamburgerMenu.style.opacity = '1';
+            hamburgerMenu.style.pointerEvents = 'auto';
+        }
+    });
+}
 
     if (hamburgerMenu) {
-        hamburgerMenu.addEventListener('mouseenter', () => {
-            isHamburgerHovered = true;
-            console.log('Hamburger mouseenter, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
-            if (!isSidebarToggled && !isNavigating && sidebar) {
-                sidebar.classList.add('visible');
-            }
-        });
+    hamburgerMenu.addEventListener('mouseenter', () => {
+        isHamburgerHovered = true;
+        console.log('Hamburger mouseenter, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+        if (!isSidebarToggled && !isNavigating && sidebar) {
+            sidebar.classList.add('visible');
+            // Hide hamburger menu when sidebar is shown
+            hamburgerMenu.style.opacity = '0';
+            hamburgerMenu.style.pointerEvents = 'none';
+        }
+    });
 
-        hamburgerMenu.addEventListener('mouseleave', () => {
-            isHamburgerHovered = false;
-            console.log('Hamburger mouseleave, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
-            debouncedToggleSidebar();
-        });
-    }
+    hamburgerMenu.addEventListener('mouseleave', () => {
+        isHamburgerHovered = false;
+        console.log('Hamburger mouseleave, states:', { isHamburgerHovered, isSidebarHovered, isSidebarToggled, isNavigating });
+        debouncedToggleSidebar();
+        // Only show hamburger menu if sidebar is not visible
+        if (!isSidebarToggled && !isSidebarHovered && hamburgerMenu) {
+            hamburgerMenu.style.opacity = '1';
+            hamburgerMenu.style.pointerEvents = 'auto';
+        }
+    });
+}
 
     dropdownToggles.forEach(toggle => {
         toggle.addEventListener('click', function (e) {
