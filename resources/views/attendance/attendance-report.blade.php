@@ -1,5 +1,7 @@
 @php
     $selectedDate = request()->query('date', now()->toDateString());
+    $presentCount = $present->count();
+    $absentCount = $absent->count();
 @endphp
 
 <div id="attendance-report-section">
@@ -30,6 +32,26 @@
         </div>
     </form>
 
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Present Employees</h5>
+                    <p class="card-text display-4">{{ $presentCount }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card text-white bg-danger mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Absent Employees</h5>
+                    <p class="card-text display-4">{{ $absentCount }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Success/Error Messages -->
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -48,10 +70,13 @@
     <div class="tables-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
         <!-- Present Employees Table -->
         <div class="table-wrapper" style="flex: 1; min-width: 0;">
-            <h3>Present Employees ({{ $selectedDate }})</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Present Employees ({{ $selectedDate }})</h3>
+                <span class="badge bg-success">{{ $presentCount }} employees</span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped">
-                    <thead>
+                    <thead class="table-dark">
                         <tr>
                             <th>Name</th>
                             <th>Position</th>
@@ -61,15 +86,25 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($present as $attendance)
+                        @forelse ($present as $attendance)
                             <tr>
                                 <td>{{ $attendance->employee->full_name }}</td>
                                 <td>{{ $attendance->employee->position->position_name ?? 'N/A' }}</td>
-                                <td>{{ $attendance->check_in_time ?? 'N/A' }}</td>
-                                <td>{{ $attendance->check_out_time ?? 'N/A' }}</td>
-                                <td>{{ $attendance->late_status ? 'Yes' : 'No' }}</td>
+                                <td>{{ $attendance->check_in_time ? \Carbon\Carbon::parse($attendance->check_in_time)->format('h:i A') : 'N/A' }}</td>
+                                <td>{{ $attendance->check_out_time ? \Carbon\Carbon::parse($attendance->check_out_time)->format('h:i A') : 'N/A' }}</td>
+                                <td>
+                                    @if($attendance->late_status)
+                                        <span class="badge bg-danger">Late</span>
+                                    @else
+                                        <span class="badge bg-success">On Time</span>
+                                    @endif
+                                </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="5" class="text-center">No employees were present on this date</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -77,22 +112,29 @@
 
         <!-- Absent Employees Table -->
         <div class="table-wrapper" style="flex: 1; min-width: 0;">
-            <h3>Absent Employees ({{ $selectedDate }})</h3>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Absent Employees ({{ $selectedDate }})</h3>
+                <span class="badge bg-danger">{{ $absentCount }} employees</span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-bordered table-striped">
-                    <thead>
+                    <thead class="table-dark">
                         <tr>
                             <th>Name</th>
                             <th>Position</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($absent as $employee)
+                        @forelse ($absent as $employee)
                             <tr>
                                 <td>{{ $employee->employee->full_name }}</td>
                                 <td>{{ $employee->employee->position->position_name ?? 'N/A' }}</td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="2" class="text-center">All employees were present on this date</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -110,7 +152,6 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Ensure tables take equal width and adjust for smaller screens */
 .tables-container {
     display: flex;
     gap: 20px;
@@ -119,13 +160,30 @@
 
 .table-wrapper {
     flex: 1;
-    min-width: 300px; /* Minimum width to prevent tables from becoming too narrow */
+    min-width: 300px;
 }
 
 @media (max-width: 768px) {
     .tables-container {
         flex-direction: column;
     }
+    
+    .card .display-4 {
+        font-size: 2rem;
+    }
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.table th {
+    white-space: nowrap;
 }
 </style>
 
@@ -155,20 +213,9 @@
     // Ensure HTMX processes the form
     document.addEventListener('htmx:afterSwap', function(evt) {
         if (evt.detail.target.id === 'attendance-report-section') {
-            console.log('HTMX swap completed for attendance-report-section');
             htmx.process(document.getElementById('attendance-report-section'));
             updateClock();
         }
-    });
-
-    // Debug HTMX requests
-    document.addEventListener('htmx:beforeRequest', function(evt) {
-        console.log('HTMX request starting', evt.detail);
-    });
-
-    document.addEventListener('htmx:responseError', function(evt) {
-        console.error('HTMX response error', evt.detail);
-        alert('Failed to load report: ' + evt.detail.xhr.statusText);
     });
 })();
 </script>

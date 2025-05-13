@@ -51,7 +51,7 @@
 <div class="content" id="content-area">
 
 
-    <h2>Requests</h2>
+    <h2>Requests Management</h2>
 
     <div id="requests-content">
         @include('requests-content', [
