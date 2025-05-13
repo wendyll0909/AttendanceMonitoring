@@ -87,12 +87,7 @@
             </ul>
         </div>
         <div class="content" id="content-area">
-            <!-- Breadcrumbs -->
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb" id="breadcrumb">
-                    <li class="breadcrumb-item"><a href="#" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>Home</a></li>
-                </ol>
-            </nav>
+            
             <!-- Default Dashboard Content -->
             <div id="dashboard-section">
                 <h2>Dashboard</h2>

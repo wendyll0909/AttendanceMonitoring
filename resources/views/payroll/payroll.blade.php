@@ -1,10 +1,5 @@
 <div id="payroll-section">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="#" hx-get="{{ route('dashboard') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Payroll</li>
-        </ol>
-    </nav>
+    
 
     <h2>Payroll</h2>
 
