@@ -221,3 +221,26 @@ body {
 .htmx-indicator {
     display: none;
 }
+.sidebar-footer {
+    padding: 10px 0;
+    border-top: 2px solid #3a4143;
+}
+
+.logout-link {
+    display: block;
+    padding: 12px;
+    color: #e61d1d;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-radius: 8px;
+}
+
+.logout-link:hover {
+    background-color: #3a4143;
+}

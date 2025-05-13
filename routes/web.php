@@ -6,16 +6,22 @@ use App\Http\Controllers\PositionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\PngWriter;
-use Endroid\QrCode\Color\Color;
-use Endroid\QrCode\Encoding\Encoding;
 
-Route::get('/', fn() => redirect('/dashboard'));
+// Redirect root to login
+Route::get('/', fn () => redirect()->route('login'));
 
-Route::prefix('dashboard')->group(function () {
+// Include Breeze authentication routes
+require __DIR__.'/auth.php';
+
+// Dashboard routes (protected by auth middleware)
+Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    
+    // Profile routes
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     
     // Employee routes
     Route::get('employees/inactive', [EmployeeController::class, 'inactive'])->name('employees.inactive');
@@ -55,6 +61,3 @@ Route::prefix('dashboard')->group(function () {
     Route::post('requests/overtime/{id}/approve', [RequestController::class, 'approveOvertime'])->name('requests.overtime.approve');
     Route::post('requests/overtime/{id}/reject', [RequestController::class, 'rejectOvertime'])->name('requests.overtime.reject');
 });
-
-
-

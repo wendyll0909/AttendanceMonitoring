@@ -46,45 +46,54 @@
                     </ul>
                 </li>
                 <li class="nav-item">
-    <a href="#" class="nav-link" data-toggle-dropdown hx-get="{{ route('attendance.record') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
-        <i class="bi bi-calendar2-plus-fill"></i> Attendance
-    </a>
-    <ul class="attendance-dropdown" style="display: none;">
-        <li>
-            <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkin') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+             <a href="#" class="nav-link" data-toggle-dropdown hx-get="{{ route('attendance.record') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
+                 <i class="bi bi-calendar2-plus-fill"></i> Attendance
+                 </a>
+                  <ul class="attendance-dropdown" style="display: none;">
+                   <li>
+               <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkin') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                 Check In
             </a>
-        </li>
-        <li>
+                    </li>
+                <li>
             <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.checkout') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                 Check Out
             </a>
-        </li>
+              </li>
        
-        <li>
+                     <li>
             <a href="#" class="nav-link dropdown-link" hx-get="{{ route('attendance.report') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                 Attendance Reports
-            </a>
-        </li>
-    </ul>
-</li>
+               </a>
+             </li>
+                   </ul>
+                    </li>
                 <li class="nav-item">
                     <a href="#" class="nav-link" 
-   hx-get="{{ route('requests.index') }}" 
-   hx-target="#content-area" 
-   hx-swap="innerHTML" 
-   hx-push-url="false" 
-   data-persist-sidebar
-   hx-headers='{"Accept": "text/html", "X-CSRF-TOKEN": "{{ csrf_token() }}"}'
-   hx-ext="disable-json">
-    <i class="bi bi-list-check"></i> Requests
-</a>
+                 hx-get="{{ route('requests.index') }}" 
+               hx-target="#content-area" 
+                  hx-swap="innerHTML" 
+                     hx-push-url="false" 
+               data-persist-sidebar
+                hx-headers='{"Accept": "text/html", "X-CSRF-TOKEN": "{{ csrf_token() }}"}'
+                hx-ext="disable-json">
+                                  <i class="bi bi-list-check"></i> Requests
+                            </a>
                 <li class="nav-item">
                     <a href="#" class="nav-link" hx-get="{{ route('payroll.index') }}" hx-target="#content-area" hx-swap="innerHTML" hx-push-url="false" data-persist-sidebar>
                         <i class="bi bi-currency-dollar"></i> Payroll Export
                     </a>
                 </li>
+               
             </ul>
+             <li class="nav-item">
+<footer class="sidebar-footer">
+            <form id="logout-form" action="{{ route('logout') }}" method="POST">
+                @csrf
+                <button type="button" class="logout-link" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">Logout</button>
+            </form>
+        </footer>
+            </li>
         </div>
         <div class="content" id="content-area">
             
@@ -97,6 +106,26 @@
     </div>
 
     <!-- Modals -->
+     
+<!-- Logout Confirmation Modal -->
+<div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutConfirmModalLabel">Confirm Logout</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to log out?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('logout-form').submit()">Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Add Employee Modal -->
     <div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-labelledby="addEmployeeModalLabel" aria-hidden="true">
         <div class="modal-dialog">

@@ -248,6 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+        if (e.target.classList.contains('logout-link')) {
+            console.log('Logout link clicked');
+        }
     });
 
     const viewQrModal = document.getElementById('viewQrModal');
