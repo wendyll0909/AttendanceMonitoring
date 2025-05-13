@@ -6,41 +6,46 @@
     <title>Nietes Design Builders - Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background-image: url('/assets/img/img.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .login-container {
-            background-color: rgba(42, 45, 46, 0.9);
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        .login-container h2 {
-            color: #74aebd;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .register-link {
-            text-align: center;
-            margin-top: 15px;
-        }
-        .register-link a {
-            color: #74aebd;
-            text-decoration: none;
-        }
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-    </style>
+    body {
+        background-image: url('/assets/img/img.jpg');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .login-container {
+        background-color: rgba(42, 45, 46, 0.9);
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        width: 100%;
+        max-width: 400px;
+    }
+    .login-container h2 {
+        color: #74aebd;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .form-label,
+    .register-link p {
+        color: white;
+    }
+    .register-link {
+        text-align: center;
+        margin-top: 15px;
+    }
+    .register-link a {
+        color: #74aebd;
+        text-decoration: none;
+    }
+    .register-link a:hover {
+        text-decoration: underline;
+    }
+</style>
+
 </head>
 <body>
     <div class="login-container">
