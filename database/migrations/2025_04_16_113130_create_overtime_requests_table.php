@@ -15,6 +15,7 @@ class CreateOvertimeRequestsTable extends Migration
             $table->dateTime('end_time');
             $table->string('reason');
             $table->string('status')->default('pending'); // 'pending', 'approved', 'rejected'
+            $table->decimal('overtime_rate', 10, 2)->nullable(); // Store calculated overtime rate
             $table->timestamps();
             $table->foreign('employee_id')->references('employee_id')->on('employees')->onDelete('cascade');
         });
@@ -24,4 +25,4 @@ class CreateOvertimeRequestsTable extends Migration
     {
         Schema::dropIfExists('overtime_requests');
     }
-};
+}

@@ -1,211 +1,233 @@
 <?php
 
-   namespace App\Http\Controllers;
+namespace App\Http\Controllers;
 
-   use App\Models\Employee;
-   use App\Models\LeaveRequest;
-   use App\Models\OvertimeRequest;
-   use Illuminate\Http\Request;
-   use Illuminate\Support\Facades\Log;
-   use Illuminate\Database\QueryException;
-   use Illuminate\Validation\ValidationException;
+use App\Models\LeaveRequest;
+use App\Models\OvertimeRequest;
+use App\Models\Employee;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
-   class RequestController extends Controller
-   {
-       public function index(Request $request)
+class RequestController extends Controller
 {
-    try {
-        Log::info('Requests index method called', [
-            'search' => $request->query('search'),
-            'status' => $request->query('status'),
-            'headers' => $request->headers->all()
-        ]);
-
-        $search = $request->query('search', '');
-        $status = $request->query('status', '');
-
-        $leaveQuery = LeaveRequest::with('employee');
-        $overtimeQuery = OvertimeRequest::with('employee');
-
-        if ($search) {
-            $leaveQuery->whereHas('employee', function($q) use ($search) {
-                $q->where('fname', 'like', "%{$search}%")
-                  ->orWhere('lname', 'like', "%{$search}%");
-            });
-            $overtimeQuery->whereHas('employee', function($q) use ($search) {
-                $q->where('fname', 'like', "%{$search}%")
-                  ->orWhere('lname', 'like', "%{$search}%");
-            });
+    public function index()
+    {
+        try {
+            $leaveRequests = LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page');
+            $overtimeRequests = OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page');
+            $employees = Employee::active()->get();
+            return view('requests', compact('leaveRequests', 'overtimeRequests', 'employees'));
+        } catch (\Exception $e) {
+            Log::error('Request index failed', ['error' => $e->getMessage()]);
+            return response()->view('requests', [
+                'leaveRequests' => collect([]),
+                'overtimeRequests' => collect([]),
+                'employees' => collect([]),
+                'error' => 'Failed to load requests'
+            ], 500);
         }
-
-        if ($status) {
-            $leaveQuery->where('status', $status);
-            $overtimeQuery->where('status', $status);
-        }
-
-        $leaveRequests = $leaveQuery->latest()->paginate(10);
-        $overtimeRequests = $overtimeQuery->latest()->paginate(10);
-
-        Log::info('Requests data fetched', [
-            'leave_count' => $leaveRequests->count(),
-            'overtime_count' => $overtimeRequests->count(),
-            'is_htmx' => $request->header('HX-Request') ? true : false
-        ]);
-
-        return response()->view('requests', [
-            'leaveRequests' => $leaveRequests,
-            'overtimeRequests' => $overtimeRequests,
-            'search' => $search,
-            'status' => $status
-        ])->header('Content-Type', 'text/html; charset=UTF-8');
-
-    } catch (\Exception $e) {
-        Log::error('Error in RequestController@index', [
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-            'request' => $request->all()
-        ]);
-
-        return response()->view('requests', [
-            'leaveRequests' => collect(),
-            'overtimeRequests' => collect(),
-            'error' => 'Failed to load requests: ' . $e->getMessage()
-        ], 500)->header('Content-Type', 'text/html; charset=UTF-8');
     }
-}
 
-       public function createLeaveRequest()
-       {
-           $employees = Employee::active()->get();
-           return view('partials.leave-request-form', compact('employees'));
-       }
+    public function storeLeave(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'employee_id' => 'required|exists:employees,employee_id',
+                'start_date' => 'required|date|after_or_equal:today',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'reason' => 'required|string|max:255',
+            ]);
 
-       public function storeLeaveRequest(Request $request)
+            if ($validator->fails()) {
+                return response()->view('requests-content', [
+                    'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                    'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                    'employees' => Employee::active()->get(),
+                    'error' => $validator->errors()->first()
+                ], 422);
+            }
+
+            LeaveRequest::create($request->only(['employee_id', 'start_date', 'end_date', 'reason']));
+
+            return response()->view('requests-content', [
+                'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                'employees' => Employee::active()->get(),
+                'success' => 'Leave request created successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Leave request store failed', ['error' => $e->getMessage()]);
+            return response()->view('requests-content', [
+                'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                'employees' => Employee::active()->get(),
+                'error' => 'Failed to create leave request'
+            ], 500);
+        }
+    }
+
+    public function storeOvertime(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'employee_id' => 'required|exists:employees,employee_id',
+                'start_time' => 'required|date_format:Y-m-d\TH:i|after:now',
+                'end_time' => 'required|date_format:Y-m-d\TH:i|after:start_time',
+                'reason' => 'required|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->view('requests-content', [
+                    'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                    'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                    'employees' => Employee::active()->get(),
+                    'error' => $validator->errors()->first()
+                ], 422);
+            }
+
+            $employee = Employee::with('position')->findOrFail($request->employee_id);
+            $baseSalary = $employee->position ? $employee->position->base_salary : 0;
+            $overtimeRate = ($baseSalary / 8) * 1.25;
+
+            OvertimeRequest::create([
+                'employee_id' => $request->employee_id,
+                'start_time' => $request->start_time,
+                'end_time' => $request->end_time,
+                'reason' => $request->reason,
+                'overtime_rate' => $overtimeRate,
+            ]);
+
+            return response()->view('requests-content', [
+                'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                'employees' => Employee::active()->get(),
+                'success' => 'Overtime request created successfully'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Overtime request store failed', ['error' => $e->getMessage()]);
+            return response()->view('requests-content', [
+                'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+                'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+                'employees' => Employee::active()->get(),
+                'error' => 'Failed to create overtime request'
+            ], 500);
+        }
+    }
+
+    public function searchLeave(Request $request)
 {
     try {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,employee_id',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'reason' => 'required|string|max:255',
-        ]);
-
-        LeaveRequest::create($validated);
-
-        // For HTMX requests
-        if ($request->header('HX-Request')) {
-            $leaveRequests = LeaveRequest::with('employee')->latest()->paginate(10);
-            $overtimeRequests = OvertimeRequest::with('employee')->latest()->paginate(10);
-            
-            return view('requests', compact('leaveRequests', 'overtimeRequests'))
-                ->with('success', 'Leave request created successfully.');
+        $query = LeaveRequest::with('employee');
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->whereHas('employee', function ($q2) use ($request) {
+                    $q2->where('fname', 'like', '%' . $request->search . '%')
+                       ->orWhere('lname', 'like', '%' . $request->search . '%')
+                       ->orWhere('mname', 'like', '%' . $request->search . '%');
+                })->orWhere('status', 'like', '%' . $request->search . '%');
+            });
         }
-
-        return redirect()->route('requests.index')
-            ->with('success', 'Leave request created successfully.');
-    } catch (ValidationException $e) {
-        Log::error('Validation error storing leave request: ' . $e->getMessage());
-        return response()->view('partials.leave-request-form', [
-            'employees' => Employee::active()->get(),
-            'error' => $e->validator->errors()->first()
-        ], 422);
+        $leaveRequests = $query->paginate(10, ['*'], 'leave_page');
+        return view('leave-rows', compact('leaveRequests'));
     } catch (\Exception $e) {
-        Log::error('Error storing leave request: ' . $e->getMessage());
-        return response()->view('partials.leave-request-form', [
-            'employees' => Employee::active()->get(),
-            'error' => 'Failed to create leave request. Please try again.'
+        Log::error('Leave request search failed', ['error' => $e->getMessage()]);
+        return response()->view('leave-rows', [
+            'leaveRequests' => collect([]),
+            'error' => 'Failed to search leave requests'
         ], 500);
     }
 }
 
-       public function approveLeaveRequest($id)
-       {
-           try {
-               $leaveRequest = LeaveRequest::findOrFail($id);
-               $leaveRequest->update(['status' => 'approved']);
-               return redirect()->route('requests.index')->with('success', 'Leave request approved.');
-           } catch (\Exception $e) {
-               Log::error('Error approving leave request: ' . $e->getMessage());
-               return response()->json(['error' => 'Failed to approve leave request.'], 500);
-           }
-       }
+    public function searchOvertime(Request $request)
+    {
+        try {
+            $query = OvertimeRequest::with('employee');
+            if ($request->search) {
+                $query->where(function ($q) use ($request) {
+                    $q->whereHas('employee', function ($q2) use ($request) {
+                        $q2->where('fname', 'like', '%' . $request->search . '%')
+                           ->orWhere('lname', 'like', '%' . $request->search . '%')
+                           ->orWhere('mname', 'like', '%' . $request->search . '%');
+                    })->orWhere('status', 'like', '%' . $request->search . '%');
+                });
+            }
+            $overtimeRequests = $query->paginate(10, ['*'], 'overtime_page');
+            return view('overtime-table', compact('overtimeRequests'));
+        } catch (\Exception $e) {
+            Log::error('Overtime request search failed', ['error' => $e->getMessage()]);
+            return response()->view('overtime-table', [
+                'overtimeRequests' => collect([]),
+                'error' => 'Failed to search overtime requests'
+            ], 500);
+        }
+    }
 
-       public function rejectLeaveRequest($id)
-       {
-           try {
-               $leaveRequest = LeaveRequest::findOrFail($id);
-               $leaveRequest->update(['status' => 'rejected']);
-               return redirect()->route('requests.index')->with('success', 'Leave request rejected.');
-           } catch (\Exception $e) {
-               Log::error('Error rejecting leave request: ' . $e->getMessage());
-               return response()->json(['error' => 'Failed to reject leave request.'], 500);
-           }
-       }
-
-       public function createOvertimeRequest()
-       {
-           $employees = Employee::active()->get();
-           return view('partials.overtime-request-form', compact('employees'));
-       }
-
-       public function storeOvertimeRequest(Request $request)
+    public function approveLeave($id)
 {
     try {
-        $validated = $request->validate([
-            'employee_id' => 'required|exists:employees,employee_id',
-            'start_time' => 'required|date|after:now',
-            'end_time' => 'required|date|after:start_time',
-            'reason' => 'required|string|max:255',
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        $leaveRequest->update(['status' => LeaveRequest::STATUS_APPROVED]);
+        return view('leave-rows', [
+            'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page')
         ]);
-
-        OvertimeRequest::create($validated);
-
-        // For HTMX requests
-        if ($request->header('HX-Request')) {
-            $leaveRequests = LeaveRequest::with('employee')->latest()->paginate(10);
-            $overtimeRequests = OvertimeRequest::with('employee')->latest()->paginate(10);
-            
-            return view('requests', compact('leaveRequests', 'overtimeRequests'))
-                ->with('success', 'Overtime request created successfully.');
-        }
-
-        return redirect()->route('requests.index')
-            ->with('success', 'Overtime request created successfully.');
-
-    } catch (ValidationException $e) {
-        return response()->view('partials.overtime-request-form', [
-            'employees' => Employee::active()->get(),
-            'error' => $e->validator->errors()->first()
-        ], 422);
     } catch (\Exception $e) {
-        return response()->view('partials.overtime-request-form', [
-            'employees' => Employee::active()->get(),
-            'error' => 'Failed to create overtime request. Please try again.'
+        Log::error('Leave request approve failed', ['error' => $e->getMessage()]);
+        return response()->view('leave-rows', [
+            'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+            'error' => 'Failed to approve leave request'
         ], 500);
     }
 }
 
-       public function approveOvertimeRequest($id)
-       {
-           try {
-               $overtimeRequest = OvertimeRequest::findOrFail($id);
-               $overtimeRequest->update(['status' => 'approved']);
-               return redirect()->route('requests.index')->with('success', 'Overtime request approved.');
-           } catch (\Exception $e) {
-               Log::error('Error approving overtime request: ' . $e->getMessage());
-               return response()->json(['error' => 'Failed to approve overtime request.'], 500);
-           }
-       }
+    public function rejectLeave($id)
+{
+    try {
+        $leaveRequest = LeaveRequest::findOrFail($id);
+        $leaveRequest->update(['status' => LeaveRequest::STATUS_REJECTED]);
+        return view('leave-rows', [
+            'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page')
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Leave request reject failed', ['error' => $e->getMessage()]);
+        return response()->view('leave-rows', [
+            'leaveRequests' => LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page'),
+            'error' => 'Failed to reject leave request'
+        ], 500);
+    }
+}
 
-       public function rejectOvertimeRequest($id)
-       {
-           try {
-               $overtimeRequest = OvertimeRequest::findOrFail($id);
-               $overtimeRequest->update(['status' => 'rejected']);
-               return redirect()->route('requests.index')->with('success', 'Overtime request rejected.');
-           } catch (\Exception $e) {
-               Log::error('Error approving overtime request: ' . $e->getMessage());
-               return response()->json(['error' => 'Failed to reject overtime request.'], 500);
-           }
-       }
-   }
+    public function approveOvertime($id)
+{
+    try {
+        $overtimeRequest = OvertimeRequest::findOrFail($id);
+        $overtimeRequest->update(['status' => OvertimeRequest::STATUS_APPROVED]);
+        return view('overtime-rows', [
+            'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page')
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Overtime request approve failed', ['error' => $e->getMessage()]);
+        return response()->view('overtime-rows', [
+            'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+            'error' => 'Failed to approve overtime request'
+        ], 500);
+    }
+}
+
+    public function rejectOvertime($id)
+{
+    try {
+        $overtimeRequest = OvertimeRequest::findOrFail($id);
+        $overtimeRequest->update(['status' => OvertimeRequest::STATUS_REJECTED]);
+        return view('overtime-rows', [
+            'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page')
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Overtime request reject failed', ['error' => $e->getMessage()]);
+        return response()->view('overtime-rows', [
+            'overtimeRequests' => OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page'),
+            'error' => 'Failed to reject overtime request'
+        ], 500);
+    }
+}
+}

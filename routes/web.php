@@ -4,8 +4,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\RequestController;
 use App\Http\Controllers\PayrollController;
+use App\Http\Controllers\RequestController;
 use Illuminate\Support\Facades\Route;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
@@ -44,58 +44,17 @@ Route::prefix('dashboard')->group(function () {
     Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');
     Route::get('payroll/export/{month}', [PayrollController::class, 'exportPdf'])->name('payroll.export');
     
-    // Requests routes
+    // Request routes
     Route::get('requests', [RequestController::class, 'index'])->name('requests.index');
-
-    // Leave Requests routes
-    Route::get('leave-requests/create', [RequestController::class, 'createLeaveRequest'])->name('leave-requests.create');
-    Route::post('leave-requests', [RequestController::class, 'storeLeaveRequest'])->name('leave-requests.store');
-    Route::post('leave-requests/{id}/approve', [RequestController::class, 'approveLeaveRequest'])->name('leave-requests.approve');
-    Route::post('leave-requests/{id}/reject', [RequestController::class, 'rejectLeaveRequest'])->name('leave-requests.reject');
-    
-    // Overtime Requests routes
-    Route::get('overtime-requests/create', [RequestController::class, 'createOvertimeRequest'])->name('overtime-requests.create');
-    Route::post('overtime-requests', [RequestController::class, 'storeOvertimeRequest'])->name('overtime-requests.store');
-    Route::post('overtime-requests/{id}/approve', [RequestController::class, 'approveOvertimeRequest'])->name('overtime-requests.approve');
-    Route::post('overtime-requests/{id}/reject', [RequestController::class, 'rejectOvertimeRequest'])->name('overtime-requests.reject');
+    Route::post('requests/leave', [RequestController::class, 'storeLeave'])->name('requests.leave.store');
+    Route::post('requests/overtime', [RequestController::class, 'storeOvertime'])->name('requests.overtime.store');
+    Route::get('requests/leave/search', [RequestController::class, 'searchLeave'])->name('requests.leave.search');
+    Route::get('requests/overtime/search', [RequestController::class, 'searchOvertime'])->name('requests.overtime.search');
+    Route::post('requests/leave/{id}/approve', [RequestController::class, 'approveLeave'])->name('requests.leave.approve');
+    Route::post('requests/leave/{id}/reject', [RequestController::class, 'rejectLeave'])->name('requests.leave.reject');
+    Route::post('requests/overtime/{id}/approve', [RequestController::class, 'approveOvertime'])->name('requests.overtime.approve');
+    Route::post('requests/overtime/{id}/reject', [RequestController::class, 'rejectOvertime'])->name('requests.overtime.reject');
 });
 
-Route::get('/check-db', function() {
-    try {
-        return response()->json([
-            'employees_exists' => Schema::hasTable('employees'),
-            'positions_exists' => Schema::hasTable('positions'),
-            'employees_columns' => Schema::getColumnListing('employees'),
-            'db_connection' => DB::connection()->getPdo() ? 'OK' : 'Failed'
-        ]);
-    } catch (\Exception $e) {
-        return $e->getMessage();
-    }
-});
 
-Route::get('/qr_codes/{code}.png', [EmployeeController::class, 'serveQrCode'])->name('qr.serve');
 
-Route::get('/test-qr', function() {
-    try {
-        $qrCode = new QrCode('TEST');
-        $qrCode->setEncoding(new Encoding('UTF-8'));
-        $qrCode->setSize(300);
-        $qrCode->setMargin(10);
-        $qrCode->setForegroundColor(new Color(0, 0, 0));
-        $qrCode->setBackgroundColor(new Color(255, 255, 255));
-
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
-        
-        $filePath = public_path('qr_codes/test.png');
-        $result->saveToFile($filePath);
-        
-        return response()->file($filePath);
-    } catch (\Exception $e) {
-        \Log::error('QR Test Failed: '.$e->getMessage());
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
