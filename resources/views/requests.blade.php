@@ -21,7 +21,7 @@
         font-weight: 600;
     }
     .request-section .pagination {
-        margin-top: 10px;
+        display: none !important;
     }
     .action-btn {
         padding: 5px 10px;

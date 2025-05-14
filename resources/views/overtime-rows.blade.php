@@ -7,6 +7,8 @@
         <td @class([
             'badge bg-success text-white' => $request->status === \App\Models\OvertimeRequest::STATUS_APPROVED,
             'badge bg-danger text-white' => $request->status === \App\Models\OvertimeRequest::STATUS_REJECTED,
+            'badge bg-warning text-dark' => $request->status === \App\Models\OvertimeRequest::STATUS_PENDING,
+
         ])>{{ ucfirst($request->status) }}</td>
         <td>₱{{ number_format($request->overtime_rate, 2) }}</td>
         <td>

@@ -134,7 +134,7 @@
                     </div>
                     
                     @if($present->hasPages())
-                        <div class="d-flex justify-content-center mt-3">
+                        <div class="d-flex justify-content-center mt-3 pagination-hidden">
                             {{ $present->appends(['search_present' => $searchPresent, 'search_absent' => $searchAbsent])->links() }}
                         </div>
                     @endif
@@ -188,7 +188,7 @@
                     </div>
                     
                     @if($absent->hasPages())
-                        <div class="d-flex justify-content-center mt-3">
+                        <div class="d-flex justify-content-center mt-3 pagination-hidden">
                             {{ $absent->appends(['search_present' => $searchPresent, 'search_absent' => $searchAbsent])->links() }}
                         </div>
                     @endif
@@ -228,6 +228,10 @@
 .badge {
     font-weight: 500;
     padding: 5px 10px;
+}
+
+.pagination-hidden {
+    display: none;
 }
 
 @media (max-width: 992px) {

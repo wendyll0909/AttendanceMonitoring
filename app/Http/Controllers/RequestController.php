@@ -14,8 +14,8 @@ class RequestController extends Controller
     public function index()
     {
         try {
-            $leaveRequests = LeaveRequest::with('employee')->paginate(10, ['*'], 'leave_page');
-            $overtimeRequests = OvertimeRequest::with('employee')->paginate(10, ['*'], 'overtime_page');
+            $leaveRequests = LeaveRequest::with('employee')->paginate(1000, ['*'], 'leave_page');
+            $overtimeRequests = OvertimeRequest::with('employee')->paginate(1000, ['*'], 'overtime_page');
             $employees = Employee::active()->get();
             return view('requests', compact('leaveRequests', 'overtimeRequests', 'employees'));
         } catch (\Exception $e) {

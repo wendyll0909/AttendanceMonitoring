@@ -339,7 +339,7 @@ class AttendanceController extends Controller
                         $q->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                     });
                 })
-                ->paginate(10, ['*'], 'present_page');
+                ->paginate(1000, ['*'], 'present_page');
 
             // Absent employees (active employees with no check-in data today)
             $absent = Employee::with('position')
@@ -352,7 +352,7 @@ class AttendanceController extends Controller
                 ->when($searchAbsent, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10, ['*'], 'absent_page');
+                ->paginate(1000, ['*'], 'absent_page');
 
             return view('attendance.record-attendance', compact('present', 'absent'));
         } catch (\Exception $e) {
@@ -417,7 +417,7 @@ class AttendanceController extends Controller
         DB::commit();
 
         // Create an empty paginator for present
-        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1, [
+        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 1000, 1, [
             'path' => route('attendance.record'),
             'pageName' => 'present_page'
         ]);
@@ -427,7 +427,7 @@ class AttendanceController extends Controller
             'present' => $emptyPresent,
             'absent' => Employee::with('position')
                 ->where('status', 'active')
-                ->paginate(10, ['*'], 'absent_page'),
+                ->paginate(1000, ['*'], 'absent_page'),
         ]);
     } catch (\Exception $e) {
         DB::rollBack();
@@ -438,7 +438,7 @@ class AttendanceController extends Controller
         session()->flash('error', 'Failed to clear attendance data: ' . $e->getMessage());
 
         // Create an empty paginator for present in case of error
-        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1, [
+        $emptyPresent = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 100, 1, [
             'path' => route('attendance.record'),
             'pageName' => 'present_page'
         ]);
@@ -447,7 +447,7 @@ class AttendanceController extends Controller
             'present' => $emptyPresent,
             'absent' => Employee::with('position')
                 ->where('status', 'active')
-                ->paginate(10, ['*'], 'absent_page'),
+                ->paginate(1000, ['*'], 'absent_page'),
             'error' => 'Failed to clear attendance data: ' . $e->getMessage()
         ], 500);
     }

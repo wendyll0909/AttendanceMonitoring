@@ -26,7 +26,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
             return view('employees.table', compact('employees', 'search'));
         } catch (\Exception $e) {
             Log::error('Employee index failed', [
@@ -49,7 +49,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
             return view('employees.inactive-table', compact('employees', 'search'));
         } catch (\Exception $e) {
             Log::error('Inactive employees failed', [
@@ -83,7 +83,7 @@ class EmployeeController extends Controller
  
          if ($validator->fails()) {
              return response()->view('employees.table', [
-                 'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+                 'employees' => Employee::with('position')->where('status', 'active')->get(),
                  'errors' => $validator->errors(),
                  'search' => $request->query('search', '')
              ], 422);
@@ -125,7 +125,7 @@ class EmployeeController extends Controller
          DB::commit();
  
          return response()->view('employees.table', [
-             'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+             'employees' => Employee::with('position')->where('status', 'active')->get(),
              'success' => 'Employee added successfully',
              'search' => $request->query('search', '')
          ]);
@@ -134,7 +134,7 @@ class EmployeeController extends Controller
          DB::rollBack();
          \Log::error('Employee Creation Error: '.$e->getMessage());
          return response()->view('employees.table', [
-             'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+             'employees' => Employee::with('position')->where('status', 'active')->get(),
              'error' => 'Employee creation failed: '.$e->getMessage(),
              'search' => $request->query('search', '')
          ], 500);
@@ -152,7 +152,7 @@ class EmployeeController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->view('employees.table', [
-                'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+                'employees' => Employee::with('position')->where('status', 'active')->get(),
                 'error' => 'Failed to load employee: ' . $e->getMessage()
             ], 500);
         }
@@ -175,7 +175,7 @@ class EmployeeController extends Controller
             if ($validator->fails()) {
                 $search = $request->input('search', '');
                 return response()->view('employees.table', [
-                    'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+                    'employees' => Employee::with('position')->where('status', 'active')->get(),
                     'errors' => $validator->errors(),
                     'search' => $search
                 ], 422);
@@ -190,7 +190,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
     
             session()->flash('success', 'Employee updated successfully');
             return response()->view('employees.table', compact('employees', 'search'));
@@ -202,7 +202,7 @@ class EmployeeController extends Controller
             $search = $request->input('search', '');
             session()->flash('error', 'Failed to update employee: ' . $e->getMessage());
             return response()->view('employees.table', [
-                'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+                'employees' => Employee::with('position')->where('status', 'active')->get(),
                 'search' => $search
             ], 500);
         }
@@ -219,7 +219,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
             session()->flash('success', 'Employee archived successfully');
             return response()->view('employees.table', compact('employees', 'search'));
         } catch (\Exception $e) {
@@ -230,7 +230,7 @@ class EmployeeController extends Controller
             $search = $request->input('search', '');
             session()->flash('error', 'Failed to archive employee: ' . $e->getMessage());
             return response()->view('employees.table', [
-                'employees' => Employee::with('position')->where('status', 'active')->paginate(10),
+                'employees' => Employee::with('position')->where('status', 'active')->get(),
                 'search' => $search
             ], 500);
         }
@@ -248,7 +248,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
             session()->flash('success', 'Employee restored successfully');
             return response()->view('employees.inactive-table', compact('employees', 'search'));
         } catch (\Exception $e) {
@@ -259,7 +259,7 @@ class EmployeeController extends Controller
             $search = $request->input('search', '');
             session()->flash('error', 'Failed to restore employee: ' . $e->getMessage());
             return response()->view('employees.inactive-table', [
-                'employees' => Employee::with('position')->onlyTrashed()->paginate(10),
+                'employees' => Employee::with('position')->onlyTrashed()->get(),
                 'search' => $search
             ], 500);
         }
@@ -275,7 +275,7 @@ class EmployeeController extends Controller
                 ->when($search, function ($query, $search) {
                     return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
                 })
-                ->paginate(10);
+                ->get();
             session()->flash('success', 'Employee permanently deleted');
             return response()->view('employees.inactive-table', compact('employees', 'search'));
         } catch (\Exception $e) {
@@ -286,7 +286,7 @@ class EmployeeController extends Controller
             $search = $request->input('search', '');
             session()->flash('error', 'Failed to delete employee: ' . $e->getMessage());
             return response()->view('employees.inactive-table', [
-                'employees' => Employee::with('position')->onlyTrashed()->paginate(10),
+                'employees' => Employee::with('position')->onlyTrashed()->get(),
                 'search' => $search
             ], 500);
         }

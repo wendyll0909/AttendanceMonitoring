@@ -111,8 +111,33 @@ console.log('Initial script running: Confirming JavaScript execution');
         </div>
         <div class="col-12">
             <h4>Today's Check-Ins</h4>
+            <div class="mb-3">
+                <input type="text" id="searchCheckins" class="form-control" placeholder="Search employees...">
+            </div>
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    {{ session('error') }}
+                </div>
+            @endif
+            @if (isset($errors) && $errors->any())
+                <div class="alert alert-danger alert-dismissible">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <ul>
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-bordered" id="checkinsTable">
                     <thead>
                         <tr>
                             <th>Employee</th>
@@ -247,6 +272,25 @@ function waitForJsQR(callback, timeout = 5000) {
         });
     }
     formatCheckinTimes();
+
+    // Search Functionality
+    function initSearch() {
+        const searchInput = document.getElementById('searchCheckins');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const filter = searchInput.value.toLowerCase();
+                const rows = document.querySelectorAll('#checkinsTable tbody tr');
+                rows.forEach(row => {
+                    const employeeCell = row.querySelector('td:first-child');
+                    if (employeeCell) {
+                        const employeeName = employeeCell.textContent.toLowerCase();
+                        row.style.display = employeeName.includes(filter) ? '' : 'none';
+                    }
+                });
+            });
+        }
+    }
+    initSearch();
 
     // Camera Elements
     const video = document.getElementById('qrVideo');
@@ -687,6 +731,7 @@ function waitForJsQR(callback, timeout = 5000) {
         htmx.on('htmx:afterSwap', (e) => {
             console.log('HTMX swap completed, reinitializing', e.detail);
             formatCheckinTimes();
+            initSearch(); // Re-initialize search after HTMX swap
             if (document.getElementById('attendance-checkin-section')) {
                 waitForJsQR(() => {
                     initUploadListeners();
