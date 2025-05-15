@@ -97,10 +97,87 @@
         </div>
         <div class="content" id="content-area">
             
-            <!-- Default Dashboard Content -->
-            <div id="dashboard-section">
+           <!-- Main Content -->
+        <div class="content">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+                </ol>
+            </nav>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard-section" hx-get="{{ route('dashboard') }}" hx-trigger="every 60s">
                 <h2>Dashboard</h2>
-                <p>Welcome to the Nietes Design Builders Employee Attendance Monitoring System.</p>
+                <div class="row mb-4">
+                    <!-- Top Employee Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-star-fill me-2 text-warning"></i>Top Employee</h5>
+                                <p class="card-text">Highest hours worked this week</p>
+                                <h4>{{ $topEmployee['name'] }}</h4>
+                                <p class="text-muted">{{ $topEmployee['hours'] }} hours</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Employee Ranking Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-trophy-fill me-2 text-primary"></i>Employee Ranking</h5>
+                                <p class="card-text">Earliest check-ins today</p>
+                                <ol>
+                                    @forelse ($employeeRanking as $employee)
+                                        <li>{{ $employee['name'] }} - {{ $employee['check_in_time'] }}</li>
+                                    @empty
+                                        <li>No data available</li>
+                                    @endforelse
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Working Employees Card -->
+                    <div class="col-md-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-person-check-fill me-2 text-success"></i>Working Employees</h5>
+                                <p class="card-text">Total employees currently working</p>
+                                <h4>{{ $presentCount }}</h4>
+                                <p class="text-muted">Active today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Attendance Report Card -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Attendance Report</h5>
+                                <p class="card-text">Average attendance per week</p>
+                                <table class="table table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Week</th>
+                                            <th>Average Hours</th>
+                                            <th>Employees</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($attendanceReport as $report)
+                                            <tr>
+                                                <td>{{ $report['week'] }}</td>
+                                                <td>{{ $report['avg_hours'] }} hours</td>
+                                                <td>{{ $report['employee_count'] }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -244,3 +244,30 @@ body {
 .logout-link:hover {
     background-color: #3a4143;
 }
+/* Card Styling */
+.card {
+    border: none;
+    border-radius: 10px;
+    background-color: #ffffff;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.card-text {
+    color: #666666;
+    margin-bottom: 15px;
+}
+
+.card h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
