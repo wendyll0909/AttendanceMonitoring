@@ -1,5 +1,6 @@
 @php
-    $selectedDate = request()->query('date', now()->toDateString());
+    $startDate = request()->query('start_date', now()->subDays(7)->toDateString());
+    $endDate = request()->query('end_date', now()->toDateString());
     $presentCount = $present->count();
     $absentCount = $absent->count();
 @endphp
@@ -10,24 +11,28 @@
         <div id="datetime-clock" class="text-muted" style="font-size: 1.1rem; font-weight: 500;"></div>
     </div>
 
-    <!-- Date Selection Form -->
+    <!-- Date Range Selection Form -->
     <form id="date-selection-form"
           hx-get="{{ route('attendance.report') }}"
           hx-target="#attendance-report-section"
           hx-swap="innerHTML"
-          hx-push-url="false"
+          hx-push-url="true"
           hx-headers='{"X-CSRF-TOKEN": "{{ csrf_token() }}"}'
           class="mb-4">
         <div class="row g-2 align-items-end">
             <div class="col-md-4">
-                <label for="date" class="form-label">Select Date</label>
-                <input type="date" name="date" id="date" class="form-control" value="{{ $selectedDate }}">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" name="start_date" id="start_date" class="form-control" value="{{ $startDate }}">
+            </div>
+            <div class="col-md-4">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" name="end_date" id="end_date" class="form-control" value="{{ $endDate }}">
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary">View Report</button>
             </div>
-            <div class="col-md-3">
-                <a href="{{ route('attendance.report.pdf', ['date' => $selectedDate]) }}" class="btn btn-primary">Export to PDF</a>
+            <div class="col-md-2">
+                <a href="{{ route('attendance.report.pdf', ['start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-primary">Export to PDF</a>
             </div>
         </div>
     </form>
@@ -71,38 +76,33 @@
         <!-- Present Employees Table -->
         <div class="table-wrapper" style="flex: 1; min-width: 0;">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>Present Employees ({{ $selectedDate }})</h3>
+                <h3>Present Employees ({{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }})</h3>
                 <span class="badge bg-success">{{ $presentCount }} employees</span>
             </div>
+            <div class="mb-3">
+                <input type="text" id="present-search" class="form-control" placeholder="Search by name..." oninput="filterTable('present-search', 'present-table')">
+            </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped" id="present-table">
                     <thead class="table-dark">
                         <tr>
                             <th>Name</th>
                             <th>Position</th>
-                            <th>Check-In Time</th>
-                            <th>Check-Out Time</th>
-                            <th>Late Status</th>
+                            <th>Total Days Present</th>
+                            <th>Late Days</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($present as $attendance)
+                        @forelse ($present as $record)
                             <tr>
-                                <td>{{ $attendance->employee->full_name }}</td>
-                                <td>{{ $attendance->employee->position->position_name ?? 'N/A' }}</td>
-                                <td>{{ $attendance->check_in_time ? \Carbon\Carbon::parse($attendance->check_in_time)->format('h:i A') : 'N/A' }}</td>
-                                <td>{{ $attendance->check_out_time ? \Carbon\Carbon::parse($attendance->check_out_time)->format('h:i A') : 'N/A' }}</td>
-                                <td>
-                                    @if($attendance->late_status)
-                                        <span class="badge bg-danger">Late</span>
-                                    @else
-                                        <span class="badge bg-success">On Time</span>
-                                    @endif
-                                </td>
+                                <td>{{ $record['employee']->full_name }}</td>
+                                <td>{{ $record['employee']->position->position_name ?? 'N/A' }}</td>
+                                <td>{{ $record['total_days'] }}</td>
+                                <td>{{ $record['late_days'] }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center">No employees were present on this date</td>
+                                <td colspan="4" class="text-center">No employees were present in this date range</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -113,26 +113,31 @@
         <!-- Absent Employees Table -->
         <div class="table-wrapper" style="flex: 1; min-width: 0;">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>Absent Employees ({{ $selectedDate }})</h3>
+                <h3>Absent Employees ({{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }})</h3>
                 <span class="badge bg-danger">{{ $absentCount }} employees</span>
             </div>
+            <div class="mb-3">
+                <input type="text" id="absent-search" class="form-control" placeholder="Search by name..." oninput="filterTable('absent-search', 'absent-table')">
+            </div>
             <div class="table-responsive">
-                <table class="table table-bordered table-striped">
+                <table class="table table-bordered table-striped" id="absent-table">
                     <thead class="table-dark">
                         <tr>
                             <th>Name</th>
                             <th>Position</th>
+                            <th>Absent Days</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($absent as $employee)
+                        @forelse ($absent as $record)
                             <tr>
-                                <td>{{ $employee->employee->full_name }}</td>
-                                <td>{{ $employee->employee->position->position_name ?? 'N/A' }}</td>
+                                <td>{{ $record['employee']->full_name }}</td>
+                                <td>{{ $record['employee']->position->position_name ?? 'N/A' }}</td>
+                                <td>{{ $record['absent_days'] }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="2" class="text-center">All employees were present on this date</td>
+                                <td colspan="3" class="text-center">All employees were present in this date range</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -210,11 +215,34 @@
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Ensure HTMX processes the form
+    // Filter table rows based on search input
+    window.filterTable = function(searchInputId, tableId) {
+        const searchInput = document.getElementById(searchInputId);
+        const table = document.getElementById(tableId);
+        const rows = table.querySelectorAll('tbody tr');
+        const searchTerm = searchInput.value.toLowerCase();
+
+        rows.forEach(row => {
+            const nameCell = row.cells[0]; // Name is in the first column
+            const nameText = nameCell.textContent.toLowerCase();
+            row.style.display = nameText.includes(searchTerm) ? '' : 'none';
+        });
+    };
+
+    // Ensure HTMX processes the form and reapply search after swap
     document.addEventListener('htmx:afterSwap', function(evt) {
         if (evt.detail.target.id === 'attendance-report-section') {
             htmx.process(document.getElementById('attendance-report-section'));
             updateClock();
+            // Reapply search filters if inputs have values
+            const presentSearch = document.getElementById('present-search');
+            const absentSearch = document.getElementById('absent-search');
+            if (presentSearch && presentSearch.value) {
+                filterTable('present-search', 'present-table');
+            }
+            if (absentSearch && absentSearch.value) {
+                filterTable('absent-search', 'absent-table');
+            }
         }
     });
 })();

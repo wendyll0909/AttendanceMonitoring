@@ -31,7 +31,7 @@ class RequestSeeder extends Seeder
         DB::beginTransaction();
         try {
             // Seed 100 Leave Requests
-            for ($i = 0; $i < 100; $i++) {
+            for ($i = 0; $i < 69; $i++) {
                 $employee = $activeEmployees->random();
                 $startDate = $faker->randomElement($dates);
                 $startCarbon = Carbon::parse($startDate);
@@ -51,7 +51,7 @@ class RequestSeeder extends Seeder
             }
 
             // Seed 100 Overtime Requests
-            for ($i = 0; $i < 100; $i++) {
+            for ($i = 0; $i < 69; $i++) {
                 $employee = $activeEmployees->random();
                 $baseSalary = $employee->position ? $employee->position->base_salary : 500; // Fallback salary
                 $overtimeRate = ($baseSalary / 8) * 1.25; // Same logic as RequestController

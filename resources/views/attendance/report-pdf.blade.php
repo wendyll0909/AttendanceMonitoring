@@ -1,41 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Attendance Report - {{ $selectedDate }}</title>
+    <title>Attendance Report</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            margin: 20px;
-        }
-        h1 {
-            text-align: center;
-            font-size: 18px;
-        }
-        h2 {
-            font-size: 16px;
-            margin-top: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2, h3 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .header { text-align: center; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <h1>Attendance Report - {{ $selectedDate }}</h1>
-    <p style="text-align: center;">Nietes Design Builders</p>
+    <div class="header">
+        <h1>Attendance Report</h1>
+        <h2>Nietes Design Builders</h2>
+        <h3>Date Range: {{ \Carbon\Carbon::parse($startDate)->format('F d, Y') }} to {{ \Carbon\Carbon::parse($endDate)->format('F d, Y') }}</h3>
+    </div>
 
     <h2>Present Employees</h2>
     <table>
@@ -43,21 +24,23 @@
             <tr>
                 <th>Name</th>
                 <th>Position</th>
-                <th>Check-In Time</th>
-                <th>Check-Out Time</th>
-                <th>Late Status</th>
+                <th>Total Days Present</th>
+                <th>Late Days</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($present as $attendance)
+            @forelse ($present as $record)
                 <tr>
-                    <td>{{ $attendance->employee->full_name }}</td>
-                    <td>{{ $attendance->employee->position->position_name ?? 'N/A' }}</td>
-                    <td>{{ $attendance->check_in_time ?? 'N/A' }}</td>
-                    <td>{{ $attendance->check_out_time ?? 'N/A' }}</td>
-                    <td>{{ $attendance->late_status ? 'Yes' : 'No' }}</td>
+                    <td>{{ $record['employee']->full_name }}</td>
+                    <td>{{ $record['employee']->position->position_name ?? 'N/A' }}</td>
+                    <td>{{ $record['total_days'] }}</td>
+                    <td>{{ $record['late_days'] }}</td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="4" style="text-align: center;">No employees present in this date range</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 
@@ -67,15 +50,21 @@
             <tr>
                 <th>Name</th>
                 <th>Position</th>
+                <th>Absent Days</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($absent as $employee)
+            @forelse ($absent as $record)
                 <tr>
-                    <td>{{ $employee->employee->full_name }}</td>
-                    <td>{{ $employee->employee->position->position_name ?? 'N/A' }}</td>
+                    <td>{{ $record['employee']->full_name }}</td>
+                    <td>{{ $record['employee']->position->position_name ?? 'N/A' }}</td>
+                    <td>{{ $record['absent_days'] }}</td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="3" style="text-align: center;">No employees absent in this date range</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </body>

@@ -35,7 +35,7 @@ class EmployeeSeeder extends Seeder
             throw new \Exception('No positions found. Please seed positions first.');
         }
 
-        for ($i = 0; $i < 500; $i++) {
+        for ($i = 0; $i < 130; $i++) {
             DB::beginTransaction();
             try {
                 // Create employee

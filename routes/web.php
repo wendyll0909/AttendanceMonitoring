@@ -44,7 +44,7 @@ Route::prefix('dashboard')->middleware('auth')->group(function () {
     Route::get('attendance/record', [AttendanceController::class, 'record'])->name('attendance.record');
     Route::post('attendance/clear', [AttendanceController::class, 'clear'])->name('attendance.clear');
     Route::get('attendance/report', [AttendanceController::class, 'report'])->name('attendance.report');
-    Route::get('attendance/report/pdf/{date}', [AttendanceController::class, 'exportPdf'])->name('attendance.report.pdf');
+    Route::get('attendance/report/pdf', [AttendanceController::class, 'exportPdf'])->name('attendance.report.pdf');
     
     // Payroll routes
     Route::get('payroll', [PayrollController::class, 'index'])->name('payroll.index');

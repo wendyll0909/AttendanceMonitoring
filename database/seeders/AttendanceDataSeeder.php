@@ -20,16 +20,16 @@ class AttendanceDataSeeder extends Seeder
 
         // Define 10 dates across April and May 2025
         $dates = [
-            '2025-04-01',
-            '2025-04-05',
-            '2025-04-10',
-            '2025-04-15',
-            '2025-04-20',
-            '2025-05-01',
-            '2025-05-05',
+            '2025-04-25',
+            '2025-04-26',
+            '2025-04-27',
+            '2025-04-28',
+            '2025-04-29',
+            '2025-05-09',
             '2025-05-10',
-            '2025-05-14',
-            '2025-05-20',
+            '2025-05-11',
+            '2025-05-12',
+            '2025-05-23',
              Carbon::today()->toDateString(),
         ];
 
@@ -47,7 +47,7 @@ class AttendanceDataSeeder extends Seeder
                 AttendanceBatch::where('batch_date', $batchDate)->delete();
 
                 // Select 100 random active employees for attendance
-                $selectedEmployees = $activeEmployees->random(100);
+                $selectedEmployees = $activeEmployees->random(69);
 
                 foreach ($selectedEmployees as $employee) {
                     // Generate random check-in time (6:00 AM to 12:00 PM)
