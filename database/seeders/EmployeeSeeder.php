@@ -47,7 +47,7 @@ class EmployeeSeeder extends Seeder
                     'contact' => $faker->phoneNumber,
                     'hire_date' => $faker->dateTimeBetween('-5 years', 'now')->format('Y-m-d'),
                     'position_id' => $faker->randomElement($positions),
-                    'status' => $faker->randomElement(['active', 'active', 'inactive']), // 2/3 chance of active
+                    'status' => 'active', // Set all employees to active
                     'qr_code' => null, // Temporary null
                 ]);
 

@@ -30,6 +30,7 @@ class AttendanceDataSeeder extends Seeder
             '2025-05-10',
             '2025-05-14',
             '2025-05-20',
+             Carbon::today()->toDateString(),
         ];
 
         // Get active employees
