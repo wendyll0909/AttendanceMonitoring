@@ -326,47 +326,50 @@ class AttendanceController extends Controller
     }
 
     public function record(Request $request)
-    {
-        try {
-            $searchPresent = $request->query('search_present');
-            $searchAbsent = $request->query('search_absent');
+{
+    try {
+        $searchPresent = $request->query('search_present');
+        $searchAbsent = $request->query('search_absent');
 
-            // Present employees (with check-in data)
-            $present = Attendance::with('employee.position')
-                ->where('date', now()->toDateString())
-                ->when($searchPresent, function ($query, $search) {
-                    return $query->whereHas('employee', function ($q) use ($search) {
-                        $q->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
-                    });
-                })
-                ->paginate(1000, ['*'], 'present_page');
+        // Present employees (with check-in data, only active employees)
+        $present = Attendance::with('employee.position')
+            ->where('date', now()->toDateString())
+            ->whereHas('employee', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->when($searchPresent, function ($query, $search) {
+                return $query->whereHas('employee', function ($q) use ($search) {
+                    $q->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
+                });
+            })
+            ->paginate(1000, ['*'], 'present_page');
 
-            // Absent employees (active employees with no check-in data today)
-            $absent = Employee::with('position')
-                ->where('status', 'active')
-                ->whereNotIn('employee_id', function ($query) {
-                    $query->select('employee_id')
-                        ->from('attendances')
-                        ->where('date', now()->toDateString());
-                })
-                ->when($searchAbsent, function ($query, $search) {
-                    return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
-                })
-                ->paginate(1000, ['*'], 'absent_page');
+        // Absent employees (already filters for active employees)
+        $absent = Employee::with('position')
+            ->where('status', 'active')
+            ->whereNotIn('employee_id', function ($query) {
+                $query->select('employee_id')
+                    ->from('attendances')
+                    ->where('date', now()->toDateString());
+            })
+            ->when($searchAbsent, function ($query, $search) {
+                return $query->whereRaw("CONCAT(fname, ' ', COALESCE(mname, ''), ' ', lname) LIKE ?", ["%$search%"]);
+            })
+            ->paginate(1000, ['*'], 'absent_page');
 
-            return view('attendance.record-attendance', compact('present', 'absent'));
-        } catch (\Exception $e) {
-            Log::error('Record attendance page load failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->view('attendance.record-attendance', [
-                'present' => collect([]),
-                'absent' => collect([]),
-                'error' => 'Failed to load record attendance page: ' . $e->getMessage()
-            ], 500);
-        }
+        return view('attendance.record-attendance', compact('present', 'absent'));
+    } catch (\Exception $e) {
+        Log::error('Record attendance page load failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->view('attendance.record-attendance', [
+            'present' => collect([]),
+            'absent' => collect([]),
+            'error' => 'Failed to load record attendance page: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function clear(Request $request)
     {
@@ -454,143 +457,155 @@ class AttendanceController extends Controller
     }
 
     public function report(Request $request)
-    {
-        try {
-            $startDate = $request->query('start_date', now()->subDays(7)->toDateString());
-            $endDate = $request->query('end_date', now()->toDateString());
+{
+    try {
+        $startDate = $request->query('start_date', now()->subDays(7)->toDateString());
+        $endDate = $request->query('end_date', now()->toDateString());
 
-            // Validate date formats
-            if (!Carbon::hasFormat($startDate, 'Y-m-d') || !Carbon::hasFormat($endDate, 'Y-m-d')) {
-                $startDate = now()->subDays(7)->toDateString();
-                $endDate = now()->toDateString();
-                session()->flash('error', 'Invalid date format. Using default date range.');
-            }
-
-            // Ensure start_date is not after end_date
-            if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
-                $temp = $startDate;
-                $startDate = $endDate;
-                $endDate = $temp;
-                session()->flash('error', 'Start date was after end date. Dates have been swapped.');
-            }
-
-            // Present employees: Aggregate total days and late days
-            $present = AttendanceBatch::with('employee.position')
-                ->whereBetween('batch_date', [$startDate, $endDate])
-                ->where('absent', false)
-                ->groupBy('employee_id')
-                ->select('employee_id', 
-                    DB::raw('COUNT(*) as total_days'),
-                    DB::raw('SUM(late_status) as late_days'))
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'employee' => $item->employee,
-                        'total_days' => $item->total_days,
-                        'late_days' => $item->late_days
-                    ];
-                });
-
-            // Absent employees: Aggregate absent days
-            $absent = AttendanceBatch::with('employee.position')
-                ->whereBetween('batch_date', [$startDate, $endDate])
-                ->where('absent', true)
-                ->groupBy('employee_id')
-                ->select('employee_id', 
-                    DB::raw('COUNT(*) as absent_days'))
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'employee' => $item->employee,
-                        'absent_days' => $item->absent_days
-                    ];
-                });
-
-            return view('attendance.attendance-report', compact('present', 'absent', 'startDate', 'endDate'));
-        } catch (\Exception $e) {
-            Log::error('Attendance report page load failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->view('attendance.attendance-report', [
-                'present' => collect([]),
-                'absent' => collect([]),
-                'startDate' => now()->subDays(7)->toDateString(),
-                'endDate' => now()->toDateString(),
-                'error' => 'Failed to load attendance report: ' . $e->getMessage()
-            ], 500);
+        // Validate date formats
+        if (!Carbon::hasFormat($startDate, 'Y-m-d') || !Carbon::hasFormat($endDate, 'Y-m-d')) {
+            $startDate = now()->subDays(7)->toDateString();
+            $endDate = now()->toDateString();
+            session()->flash('error', 'Invalid date format. Using default date range.');
         }
+
+        // Ensure start_date is not after end_date
+        if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
+            $temp = $startDate;
+            $startDate = $endDate;
+            $endDate = $temp;
+            session()->flash('error', 'Start date was after end date. Dates have been swapped.');
+        }
+
+        // Present employees: Aggregate total days and late days, only active employees
+        $present = AttendanceBatch::with('employee.position')
+            ->whereBetween('batch_date', [$startDate, $endDate])
+            ->where('absent', false)
+            ->whereHas('employee', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->groupBy('employee_id')
+            ->select('employee_id', 
+                DB::raw('COUNT(*) as total_days'),
+                DB::raw('SUM(late_status) as late_days'))
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'employee' => $item->employee,
+                    'total_days' => $item->total_days,
+                    'late_days' => $item->late_days
+                ];
+            });
+
+        // Absent employees: Aggregate absent days, only active employees
+        $absent = AttendanceBatch::with('employee.position')
+            ->whereBetween('batch_date', [$startDate, $endDate])
+            ->where('absent', true)
+            ->whereHas('employee', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->groupBy('employee_id')
+            ->select('employee_id', 
+                DB::raw('COUNT(*) as absent_days'))
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'employee' => $item->employee,
+                    'absent_days' => $item->absent_days
+                ];
+            });
+
+        return view('attendance.attendance-report', compact('present', 'absent', 'startDate', 'endDate'));
+    } catch (\Exception $e) {
+        Log::error('Attendance report page load failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->view('attendance.attendance-report', [
+            'present' => collect([]),
+            'absent' => collect([]),
+            'startDate' => now()->subDays(7)->toDateString(),
+            'endDate' => now()->toDateString(),
+            'error' => 'Failed to load attendance report: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function exportPdf(Request $request)
-    {
-        try {
-            $startDate = $request->query('start_date');
-            $endDate = $request->query('end_date');
+{
+    try {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
 
-            // Validate date formats
-            if (!Carbon::hasFormat($startDate, 'Y-m-d') || !Carbon::hasFormat($endDate, 'Y-m-d')) {
-                throw new \Exception('Invalid date format');
-            }
-
-            // Ensure start_date is not after end_date
-            if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
-                $temp = $startDate;
-                $startDate = $endDate;
-                $endDate = $temp;
-            }
-
-            // Fetch present employees
-            $present = AttendanceBatch::with('employee.position')
-                ->whereBetween('batch_date', [$startDate, $endDate])
-                ->where('absent', false)
-                ->groupBy('employee_id')
-                ->select('employee_id', 
-                    DB::raw('COUNT(*) as total_days'),
-                    DB::raw('SUM(late_status) as late_days'))
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'employee' => $item->employee,
-                        'total_days' => $item->total_days,
-                        'late_days' => $item->late_days
-                    ];
-                });
-
-            // Fetch absent employees
-            $absent = AttendanceBatch::with('employee.position')
-                ->whereBetween('batch_date', [$startDate, $endDate])
-                ->where('absent', true)
-                ->groupBy('employee_id')
-                ->select('employee_id', 
-                    DB::raw('COUNT(*) as absent_days'))
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'employee' => $item->employee,
-                        'absent_days' => $item->absent_days
-                    ];
-                });
-
-            // Load the PDF view
-            $pdf = PDF::loadView('attendance.report-pdf', [
-                'present' => $present,
-                'absent' => $absent,
-                'startDate' => $startDate,
-                'endDate' => $endDate
-            ]);
-
-            return $pdf->download("attendance_report_{$startDate}_to_{$endDate}.pdf");
-        } catch (\Exception $e) {
-            Log::error('PDF export failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            session()->flash('error', 'Failed to export PDF: ' . $e->getMessage());
-            return redirect()->route('attendance.report', [
-                'start_date' => $startDate,
-                'end_date' => $endDate
-            ]);
+        // Validate date formats
+        if (!Carbon::hasFormat($startDate, 'Y-m-d') || !Carbon::hasFormat($endDate, 'Y-m-d')) {
+            throw new \Exception('Invalid date format');
         }
+
+        // Ensure start_date is not after end_date
+        if (Carbon::parse($startDate)->gt(Carbon::parse($endDate))) {
+            $temp = $startDate;
+            $startDate = $endDate;
+            $endDate = $temp;
+        }
+
+        // Fetch present employees, only active
+        $present = AttendanceBatch::with('employee.position')
+            ->whereBetween('batch_date', [$startDate, $endDate])
+            ->where('absent', false)
+            ->whereHas('employee', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->groupBy('employee_id')
+            ->select('employee_id', 
+                DB::raw('COUNT(*) as total_days'),
+                DB::raw('SUM(late_status) as late_days'))
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'employee' => $item->employee,
+                    'total_days' => $item->total_days,
+                    'late_days' => $item->late_days
+                ];
+            });
+
+        // Fetch absent employees, only active
+        $absent = AttendanceBatch::with('employee.position')
+            ->whereBetween('batch_date', [$startDate, $endDate])
+            ->where('absent', true)
+            ->whereHas('employee', function ($query) {
+                $query->where('status', 'active');
+            })
+            ->groupBy('employee_id')
+            ->select('employee_id', 
+                DB::raw('COUNT(*) as absent_days'))
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'employee' => $item->employee,
+                    'absent_days' => $item->absent_days
+                ];
+            });
+
+        // Load the PDF view
+        $pdf = PDF::loadView('attendance.report-pdf', [
+            'present' => $present,
+            'absent' => $absent,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ]);
+
+        return $pdf->download("attendance_report_{$startDate}_to_{$endDate}.pdf");
+    } catch (\Exception $e) {
+        Log::error('PDF export failed', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        session()->flash('error', 'Failed to export PDF: ' . $e->getMessage());
+        return redirect()->route('attendance.report', [
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ]);
     }
+}
 }
