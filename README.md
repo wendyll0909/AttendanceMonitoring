@@ -8,26 +8,26 @@
 </p>
 <div style="background-color: white; padding: 20px;">
 
-<h2>To Open</h2>
+## To Open
 
-<p>advanced system setting<br>
-environment variables<br>
-make path for C:\xampp\php move to 1st row<br>
-go C:\xampp\php\php setting logo<br>
-remove semicolon ;extension=zip and ;extension=gd<br>
-gitbash here htdocs<br>
-git clone https://github.com/wendyll0909/AttendanceMonitoring.git<br>
-go to vscode open project folder then terminal<br>
-create db<br>
-composer install<br>
-cp .env.example .env<br>
-php artisan key:generate<br>
-php artisan migrate<br>
-composer require barryvdh/laravel-dompdf<br>
-composer require endroid/qr-code:^4.8 bacon/bacon-qr-code:^2.0.5 --with-all-dependencies<br>
-mkdir -p public/qr_codes<br>
-chmod -R 775 public/qr_codes<br>
-</p>
+advanced system setting  
+environment variables  
+make path for C:\xampp\php move to 1st row  
+go C:\xampp\php\php setting logo  
+remove semicolon ;extension=zip and ;extension=gd  
+gitbash here htdocs  
+git clone https://github.com/wendyll0909/AttendanceMonitoring.git  
+go to vscode open project folder then terminal  
+create db  
+composer install  
+cp .env.example .env  
+php artisan key:generate  
+php artisan migrate  
+composer require barryvdh/laravel-dompdf  
+composer require endroid/qr-code:^4.8 bacon/bacon-qr-code:^2.0.5 --with-all-dependencies  
+mkdir -p public/qr_codes  
+chmod -R 775 public/qr_codes  
 
 </div>
+
 
